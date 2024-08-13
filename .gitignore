@@ -1,0 +1,8 @@
+build
+3rd/build
+.vscode
+.cache
+test/data
+out
+*.tar.gz
+sdk/api_version.h

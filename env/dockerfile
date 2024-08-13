@@ -1,0 +1,50 @@
+FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+
+# source list
+RUN cp -a /etc/apt/sources.list /etc/apt/sources.list.bak && \
+sed -i "s@http://.*archive.ubuntu.com@http://repo.huaweicloud.com@g" /etc/apt/sources.list && \
+sed -i "s@http://.*security.ubuntu.com@http://repo.huaweicloud.com@g" /etc/apt/sources.list && \
+apt-get update && \
+apt-get install -y vim curl git && \
+apt-get install -y make gcc g++ libz-dev android-tools-adb zip wget && \
+apt-get clean && \
+mv /etc/apt/sources.list.bak /etc/apt/sources.list
+
+ENV PATH=$PATH:/android-ndk-r20b ANDROID_NDK_HOME=/android-ndk-r20b
+
+# install cudnn
+RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb && \
+dpkg -i cuda-keyring_1.1-1_all.deb && \
+apt-get install libcudnn8=8.9.5.*-1+cuda12.2 && \
+apt-get install libcudnn8-dev=8.9.5.*-1+cuda12.2
+
+# install trt
+RUN mkdir -p /opt && cd /opt && wget http://192.168.1.182:9000/sdk/3rd/TensorRT-8.6.1.6.tar.gz && \
+tar -zvxf TensorRT-8.6.1.6.tar.gz && rm TensorRT-8.6.1.6.tar.gz
+
+ENV LD_LIBRARY_PATH=/opt/TensorRT-8.6.1.6/lib:$LD_LIBRARY_PATH PATH=/opt/TensorRT-8.6.1.6:$PATH
+
+RUN cd /opt/TensorRT-8.6.1.6/samples && make -j 8 && \
+cp -r /opt/TensorRT-8.6.1.6/lib/* /usr/lib && cp -r /opt/TensorRT-8.6.1.6/include/* /usr/include
+
+
+# install ffmpeg
+RUN cd /opt && git clone --recurse-submodules -b sdk/12.0 https://git.videolan.org/git/ffmpeg/nv-codec-headers.git && cd nv-codec-headers && \
+make && make install && cd /opt && git clone --recurse-submodules -b release/7.0 https://git.ffmpeg.org/ffmpeg.git && cd ffmpeg && \ 
+apt-get update && apt-get install -y build-essential yasm cmake libtool libc6 libc6-dev unzip wget libnuma1 libnuma-dev && \
+./configure --prefix=./linux-install --enable-nonfree --enable-cuda-nvcc --enable-libnpp --extra-cflags=-I/usr/local/cuda/include \
+--extra-ldflags=-L/usr/local/cuda-12.1/lib64 --disable-static --enable-shared && \
+make -j 8 ; make install
+
+# install opencv
+RUN cd /opt && git clone https://github.com/opencv/opencv.git -b 3.4 && \
+    git clone https://github.com/opencv/opencv_contrib.git -b 3.4 && \
+    cd opencv && mkdir build && cd build  && \
+    cmake -D CMAKE_BUILD_TYPE=Release -D BUILD_DOCS=OFF -D BUILD_EXAMPLES=OFF -D BUILD_opencv_apps=OFF -D BUILD_opencv_python2=OFF \
+    -D BUILD_opencv_python3=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_JAVA=OFF -D BUILD_opencv_java=OFF -D BUILD_TESTS=OFF -D WITH_FFMPEG=OFF .. && \
+    make -j 8 &&  make install && cd .. && rm build -rf    
+
+
+
+
+

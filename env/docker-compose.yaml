@@ -1,0 +1,28 @@
+version: '3.7'
+services:
+  antgo-env-sports:
+    container_name: cv-infer-lc
+    image:  cv-infer:20240813
+    command: bash
+    volumes:
+      - /data:/dataset
+      - /tmp:/tmp
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - /data/mnt/sda/chao/lichao:/workspace
+    # ports:
+    #   - 18000:8000
+    #   - 18080:8080
+    #   - 9002:9002
+    environment:
+      # - PASSWORD=123
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [video]
+    privileged: true
+    shm_size: '20G'
+    restart: always
