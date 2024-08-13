@@ -25,8 +25,13 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-message(STATUS "Git branch: ${GIT_BRANCH}")
-message(STATUS "Git commit id: ${GIT_COMMIT_ID}")
+
+set(GIT_BRANCH_NAME ${GIT_BRANCH})
+set(GIT_COMMIT_ID ${GIT_COMMIT_ID})
+message(STATUS "${git_branch}")
+message(STATUS "${git_commit_id}")
+
+configure_file(${CMAKE_SOURCE_DIR}/src/tools/version.h.in  ${CMAKE_SOURCE_DIR}/src/tools/version.h @ONLY)
 
 set(LIB_CVINFER cvinfer)
 set(EXE_DEMO "demo")

@@ -1,7 +1,7 @@
 #pragma once
 namespace cv_infer
 {
-constexpr auto BUILD_BRANCH = "BuildBranch: @BRANCH_NAME@";
-constexpr auto BUILD_COMMIT = "BuildCommit: @COMMIT_HASH@";
+constexpr auto BUILD_BRANCH = "BuildBranch: @GIT_BRANCH_NAME@";
+constexpr auto BUILD_COMMIT = "BuildCommit: @GIT_COMMIT_ID@";
 constexpr auto LIB_VERSION  = "Version: @PROJECT_VERSION@";
 }  // namespace cv_infer
