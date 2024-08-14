@@ -28,8 +28,6 @@ execute_process(
 
 set(GIT_BRANCH_NAME ${GIT_BRANCH})
 set(GIT_COMMIT_ID ${GIT_COMMIT_ID})
-message(STATUS "${git_branch}")
-message(STATUS "${git_commit_id}")
 
 configure_file(${CMAKE_SOURCE_DIR}/src/tools/version.h.in  ${CMAKE_SOURCE_DIR}/src/tools/version.h @ONLY)
 

@@ -2,12 +2,12 @@
 
 #include "node/node_base.h"
 
-namespace cvinfer
+namespace cv_infer
 {
 class EncoderNode : public NodeBase
 {
 public:
-    EncoderNode() = default;
+    EncoderNode()          = default;
     virtual ~EncoderNode() = default;
 };
-}  // namespace cvinfer
+}  // namespace cv_infer

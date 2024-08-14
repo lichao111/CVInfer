@@ -1,12 +1,16 @@
 #pragma once
 
+#include <tools/queue.h>
+
 #include <array>
+#include <memory>
 #include <opencv2/core.hpp>
 #include <stdexcept>
 #include <string>
-#include <type_traits>
 
-namespace cvinfer
+#include "tools/queue.h"
+
+namespace cv_infer
 {
 enum class SignalType
 {
@@ -158,4 +162,7 @@ public:
 private:
     cv::Mat Val;
 };
-}  // namespace cvinfer
+
+using SignalQue    = Queue<std::shared_ptr<SignalBase>>;
+using SignalQueRef = SignalQue &;
+}  // namespace cv_infer

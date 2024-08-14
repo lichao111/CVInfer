@@ -1,8 +1,11 @@
 #include <thread>
+#include <vector>
 
 #include "../src/tools/logger.h"
+#include "../src/tools/threadpool.h"
 #include "../src/tools/timer.h"
 #include "../src/tools/version.h"
+
 using namespace cv_infer;
 using namespace std::chrono_literals;
 int main()
@@ -13,7 +16,7 @@ int main()
     LOGI("commit: %s", BUILD_COMMIT);
 
     Timer timer;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 2; i++)
     {
         timer.StartTimer();
         std::this_thread::sleep_for(1s * i);

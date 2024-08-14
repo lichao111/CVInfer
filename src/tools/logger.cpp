@@ -1,6 +1,5 @@
 #include "logger.h"
 
-#include <bit>
 #include <chrono>
 #include <cstdarg>
 #include <cstdio>
