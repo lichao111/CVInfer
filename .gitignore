@@ -5,4 +5,4 @@ build
 test/data
 out
 *.tar.gz
-sdk/api_version.h
+src/tools/version.h
