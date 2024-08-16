@@ -7,6 +7,7 @@
 #include <opencv2/core.hpp>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "tools/queue.h"
 
@@ -41,6 +42,7 @@ enum class SignalType
 class SignalBase
 {
 public:
+    SignalBase() :                    SigType{SignalType::SIGNAL_UNKNOWN} {}
     SignalBase(SignalType sig_type) : SigType{sig_type} {}
     virtual ~SignalBase() = default;
 
@@ -163,6 +165,8 @@ private:
     cv::Mat Val;
 };
 
-using SignalQue    = Queue<std::shared_ptr<SignalBase>>;
-using SignalQueRef = SignalQue &;
+using SignalBasePtr    = std::shared_ptr<SignalBase>;
+using SignalQue        = Queue<std::shared_ptr<SignalBase>>;
+using SignalQueRefList = std::vector<std::reference_wrapper<SignalQue>>;
+using SignalQueList    = std::vector<SignalQue>;
 }  // namespace cv_infer

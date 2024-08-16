@@ -32,6 +32,16 @@ public:
         }
     };
 
+    bool SetThreadCount(std::uint8_t thread_count)
+    {
+        if (Running)
+        {
+            return false;
+        }
+        ThreadCount = thread_count;
+        return true;
+    }
+
     void Start()
     {
         Running = true;

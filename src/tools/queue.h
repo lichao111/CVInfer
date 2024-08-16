@@ -9,8 +9,28 @@ template <typename T>
 class Queue
 {
 public:
-    Queue()  = default;
-    ~Queue() = default;
+    Queue() = default;  // 默认构造函数
+
+    // 复制构造函数
+    Queue(const Queue& other)
+    {
+        std::lock_guard<std::mutex> lock(Mutex);
+        Que     = other.Que;
+        MaxSize = other.MaxSize;
+    }
+
+    // 赋值运算符
+    Queue& operator=(const Queue& other)
+    {
+        if (this != &other)
+        {
+            std::lock_guard<std::mutex> lock1(Mutex, std::adopt_lock);
+            // std::lock_guard<std::mutex> lock2(other.Mutex, std::adopt_lock);
+            Que     = other.Que;
+            MaxSize = other.MaxSize;
+        }
+        return *this;
+    }
 
     bool Push(const T& item)
     {
