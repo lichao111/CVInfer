@@ -60,6 +60,7 @@ private:
     std::unique_ptr<ThreadPool> PoolPtr;
     std::future<bool>           Future;
     std::atomic_bool            Running{false};
+    std::chrono::milliseconds   SleepTime{10};
 
     std::vector<SignalBasePtr> InputSignals; //[[inputs_port[0], inputs_port[1], ...]
 };

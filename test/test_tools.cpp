@@ -2,7 +2,9 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <future>
+#include <vector>
 
 #include "node/node_base.h"
 #include "signal/signal.h"
@@ -47,10 +49,11 @@ TEST(runTests, Que)
     }
 }
 
-class NodeImplTest : public NodeBase
+class NodeImplTestBase : public NodeBase
 {
 public:
-    NodeImplTest(std::size_t inputs, std::size_t outputs, std::size_t thds = 1)
+    NodeImplTestBase(std::size_t inputs, std::size_t outputs,
+                     std::size_t thds = 1)
         : NodeBase(inputs, outputs, thds)
     {
     }
@@ -58,19 +61,55 @@ public:
     virtual std::vector<SignalBasePtr> Worker(
         std::vector<SignalBasePtr> input_signals) override
     {
+        std::vector<SignalBasePtr> output_signals;
         for (auto& sig : input_signals)
         {
-            LOGT("NodeImpl::Worker() get signal in thread [%ld]",
+            LOGI("NodeImpl::Worker() get signal in thread [%ld]",
                  std::this_thread::get_id());
+            output_signals.push_back(std::move(sig));
         }
-        return {};
+
+        return output_signals;
+    }
+};
+
+class NodeImplTestArthMetric : public NodeBase
+{
+public:
+    NodeImplTestArthMetric(std::size_t inputs, std::size_t outputs,
+                           std::size_t thds = 1)
+        : NodeBase(inputs, outputs, thds)
+    {
+    }
+    virtual std::vector<SignalBasePtr> Worker(
+        std::vector<SignalBasePtr> input_signals) override
+    {
+        std::vector<SignalBasePtr> output_signals;
+        for (auto& sig : input_signals)
+        {
+            // check if sig type is SignalArithMetric
+            if (sig->GetSignalType() != SignalType::SIGNAL_UINT8T)
+            {
+                LOGE("NodeImpl::Worker() get signal type error, excepted");
+                continue;
+            }
+
+            LOGI("NodeImpl::Worker() get signal in thread [%ld]",
+                 std::this_thread::get_id());
+            output_signals.push_back(std::move(sig));
+        }
+
+        return output_signals;
     }
 };
 
 TEST(runTests, NodeBase)
 {
-    NodeImplTest  node(4, 5, 2);
-    SignalQueList input_signals;
+    auto             input_count  = 4;
+    auto             output_count = 4;
+    auto             thread_count = 2;
+    NodeImplTestBase node(input_count, output_count, thread_count);
+    SignalQueList    input_signals;
     for (int i = 0; i < 4; i++)
     {
         input_signals.push_back(SignalQue());
@@ -78,16 +117,42 @@ TEST(runTests, NodeBase)
     SignalQueRefList input_signals_ref;
     for (auto& que : input_signals)
     {
+        que.Push(std::make_shared<SignalBase>());
         input_signals_ref.push_back(std::ref(que));
     }
     node.SetInputs(input_signals_ref);
     node.Start();
-    node.Run();
-    std::this_thread::sleep_for(std::chrono::seconds(5s));
+    std::this_thread::sleep_for(10ms);
     node.Stop();
 }
+
+TEST(runTests, NodeBaseArthMetric)
+{
+    auto                   input_count  = 4;
+    auto                   output_count = 4;
+    auto                   thread_count = 2;
+    NodeImplTestArthMetric node(input_count, output_count, thread_count);
+    SignalQueList          input_signals;
+    for (int i = 0; i < 4; i++)
+    {
+        input_signals.push_back(SignalQue());
+    }
+    SignalQueRefList input_signals_ref;
+    for (auto& que : input_signals)
+    {
+        que.Push(std::make_shared<
+                 SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(3));
+        input_signals_ref.push_back(std::ref(que));
+    }
+    node.SetInputs(input_signals_ref);
+    node.Start();
+    std::this_thread::sleep_for(10ms);
+    node.Stop();
+}
+
 int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
+    Logger::SetLogLevel(LogLevel::TRACE);
     return RUN_ALL_TESTS();
 }

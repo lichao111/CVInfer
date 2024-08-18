@@ -39,34 +39,28 @@ enum class SignalType
     SIGNAL_IMAGE_YUV  = 20,
 };
 
-class SignalBase
+struct SignalBase
 {
-public:
-    SignalBase() :                    SigType{SignalType::SIGNAL_UNKNOWN} {}
+    SignalBase() : SigType{SignalType::SIGNAL_UNKNOWN} {}
     SignalBase(SignalType sig_type) : SigType{sig_type} {}
     virtual ~SignalBase() = default;
-
     SignalType GetSignalType() const { return SigType; }
 
-private:
     SignalType SigType{SignalType::SIGNAL_UNKNOWN};
 };
 
 template <typename T, SignalType Type,
           typename = std::enable_if<std::is_arithmetic_v<T>>>
-class SigalArithMetric : public SignalBase
+struct SigalArithMetric : public SignalBase
 {
-public:
     SigalArithMetric(T value) : SignalBase(Type), Val(value) {}
     virtual ~SigalArithMetric() override = default;
 
-private:
     T Val{0};
 };
 
-class SignalString : public SignalBase
+struct SignalString : public SignalBase
 {
-public:
     SignalString(const std::string &value)
         : SignalBase(SignalType::SIGNAL_STRING), Val(value)
     {
@@ -77,23 +71,19 @@ public:
     }
     virtual ~SignalString() override = default;
 
-private:
     std::string Val;
 };
 
-class SigalBool : public SignalBase
+struct SigalBool : public SignalBase
 {
-public:
     SigalBool(bool value) : SignalBase(SignalType::SIGNAL_BOOL), Val(value) {}
     virtual ~SigalBool() override = default;
 
-private:
     bool Val{false};
 };
 
-class SignalBBox : public SignalBase
+struct SignalBBox : public SignalBase
 {
-public:
     SignalBBox(float x_min, float y_min, float x_max, float y_max)
         : SignalBase(SignalType::SIGNAL_BBOX),
           Xmin(x_min),
@@ -104,16 +94,14 @@ public:
     }
     virtual ~SignalBBox() override = default;
 
-private:
     float Xmin{0.0f};
     float Ymin{0.0f};
     float Xmax{0.0f};
     float Ymax{0.0f};
 };
 
-class SignalKeyPoints : public SignalBase
+struct SignalKeyPoints : public SignalBase
 {
-public:
     SignalKeyPoints(const std::array<std::pair<float, float>, 33> &keypoints)
         : SignalBase(SignalType::SIGNAL_KEYPOINTS), Val(keypoints)
     {
@@ -126,14 +114,12 @@ public:
     }
     virtual ~SignalKeyPoints() override = default;
 
-private:
     std::array<std::pair<float, float>, 33> Val;
     static constexpr size_t                 MaxKeyPoints = 33;
 };
 
-class SignalImageBGR : public SignalBase
+struct SignalImageBGR : public SignalBase
 {
-public:
     SignalImageBGR(const cv::Mat &image)
         : SignalBase(SignalType::SIGNAL_IMAGE_BGR), Val(image)
     {
@@ -144,13 +130,11 @@ public:
     }
     virtual ~SignalImageBGR() override = default;
 
-private:
     cv::Mat Val;
 };
 
-class SignalImageRGB : public SignalBase
+struct SignalImageRGB : public SignalBase
 {
-public:
     SignalImageRGB(const cv::Mat &image)
         : SignalBase(SignalType::SIGNAL_IMAGE_RGB), Val(image)
     {
@@ -161,7 +145,6 @@ public:
     }
     virtual ~SignalImageRGB() override = default;
 
-private:
     cv::Mat Val;
 };
 
@@ -169,4 +152,8 @@ using SignalBasePtr    = std::shared_ptr<SignalBase>;
 using SignalQue        = Queue<std::shared_ptr<SignalBase>>;
 using SignalQueRefList = std::vector<std::reference_wrapper<SignalQue>>;
 using SignalQueList    = std::vector<SignalQue>;
+
+bool IsSignalQueRefListReady(const SignalQueRefList &input_signals);
+std::vector<SignalBasePtr> GetSignaList(const SignalQueRefList &input_signals);
+
 }  // namespace cv_infer
