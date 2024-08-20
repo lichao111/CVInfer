@@ -6,3 +6,5 @@ test/data
 out
 *.tar.gz
 src/tools/version.h
+*mp4
+*jpg

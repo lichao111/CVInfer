@@ -46,7 +46,8 @@ struct SignalBase
     virtual ~SignalBase() = default;
     SignalType GetSignalType() const { return SigType; }
 
-    SignalType SigType{SignalType::SIGNAL_UNKNOWN};
+    SignalType    SigType{SignalType::SIGNAL_UNKNOWN};
+    std::uint64_t FrameIdx{0};
 };
 
 template <typename T, SignalType Type,
@@ -149,11 +150,14 @@ struct SignalImageRGB : public SignalBase
 };
 
 using SignalBasePtr    = std::shared_ptr<SignalBase>;
-using SignalQue        = Queue<std::shared_ptr<SignalBase>>;
+using SignalQue        = Queue<SignalBasePtr>;
 using SignalQueRefList = std::vector<std::reference_wrapper<SignalQue>>;
 using SignalQueList    = std::vector<SignalQue>;
 
-bool IsSignalQueRefListReady(const SignalQueRefList &input_signals);
+SignalQueRefList GetQueRef(SignalQueList &input_signals);
+bool             IsSignalQueRefListReady(const SignalQueRefList &input_signals);
+
+// 所有的信号队列都不为空时，返回信号队列中的第一个信号组成的列表
 std::vector<SignalBasePtr> GetSignaList(const SignalQueRefList &input_signals);
 
 }  // namespace cv_infer

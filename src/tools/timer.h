@@ -10,7 +10,10 @@ namespace cv_infer
 class Timer
 {
 public:
-    Timer() : Start(std::chrono::steady_clock::now()) {}
+    Timer(const std::string name)
+        : Name(name), Start(std::chrono::steady_clock::now())
+    {
+    }
     Timer(const Timer&)            = delete;
     Timer& operator=(const Timer&) = delete;
     Timer(Timer&&)                 = delete;
@@ -29,8 +32,8 @@ public:
         Average = static_cast<float>(Total) / ++Times;
         Min     = std::min(Min, Elapsed);
         Max     = std::max(Max, Elapsed);
-        LOGI("time cost: Average: [%f] ms, Min: [%lu] ms, Max: [%lu] ms",
-             Average, Min, Max);
+        LOGI("timer [%s] cost: Average: [%f] ms, Min: [%lu] ms, Max: [%lu] ms",
+             Name.c_str(), Average, Min, Max);
     }
 
     void Reset()
@@ -53,5 +56,6 @@ private:
     float                                              Average{0.0f};
     std::uint64_t Min{std::numeric_limits<std::uint64_t>::max()};
     std::uint64_t Max{std::numeric_limits<std::uint64_t>::min()};
+    std::string   Name{"Timer"};
 };
 }  // namespace cv_infer

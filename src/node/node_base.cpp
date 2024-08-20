@@ -1,5 +1,7 @@
 #include "node_base.h"
 
+#include <cxxabi.h>
+
 #include <future>
 #include <thread>
 
@@ -21,10 +23,22 @@ bool NodeBase::Start()
 bool NodeBase::Stop()
 {
     Running = false;
-    Future.wait();
-    Future.get();
+    if (Future.valid())
+    {
+        Future.wait();
+        Future.get();
+    }
     return true;
 }
+
+std::string NodeBase::Demangle(const char* name)
+{
+    int                                    status = 0;
+    std::unique_ptr<char, void (*)(void*)> res{
+        abi::__cxa_demangle(name, nullptr, nullptr, &status), std::free};
+    return (status == 0) ? res.get() : name;
+}
+
 bool NodeBase::Run()
 {
     // TODO: 使用线程池并发 现在每次只提交一个任务

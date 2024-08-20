@@ -56,8 +56,11 @@ find_path(AVUTIL_INCLUDE_DIR libavutil/avutil.h ${FFmpeg_INC})
 find_library(AVUTIL_LIBRARY avutil ${FFmpeg_LIB})
 find_path(AVDEVICE_INCLUDE_DIR libavdevice/avdevice.h ${FFmpeg_INC})
 find_library(AVDEVICE_LIBRARY avdevice ${FFmpeg_LIB})
-target_include_directories(${LIB_CVINFER} PRIVATE ${AVCODEC_INCLUDE_DIR} ${AVFORMAT_INCLUDE_DIR} ${AVUTIL_INCLUDE_DIR} ${AVDEVICE_INCLUDE_DIR})
-target_link_libraries(${LIB_CVINFER} PRIVATE ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY})
+find_path(AVSWSCALE_INCLUDE_DIR libswscale/swscale.h ${FFmpeg_INC})
+find_library(AVSWSCALE_LIBRARY swscale ${FFmpeg_LIB})
+
+target_include_directories(${LIB_CVINFER} PUBLIC ${AVCODEC_INCLUDE_DIR} ${AVFORMAT_INCLUDE_DIR} ${AVUTIL_INCLUDE_DIR} ${AVDEVICE_INCLUDE_DIR} ${AVSWSCALE_INCLUDE_DIR} )
+target_link_libraries(${LIB_CVINFER} PUBLIC ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY} ${AVSWSCALE_LIBRARY} )
 
 target_link_libraries(${LIB_CVINFER} PUBLIC ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${TensorRT_LIBRARIES} ${CUDNN_LIBRARIES} ${FFmpeg_LIBRARIES})
 target_link_libraries(${EXE_DEMO} PRIVATE ${LIB_CVINFER})

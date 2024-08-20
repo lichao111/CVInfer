@@ -15,7 +15,7 @@ int main()
     LOGI("branch: %s", BUILD_BRANCH);
     LOGI("commit: %s", BUILD_COMMIT);
 
-    Timer timer;
+    Timer timer{"test"};
     for (int i = 0; i < 2; i++)
     {
         timer.StartTimer();

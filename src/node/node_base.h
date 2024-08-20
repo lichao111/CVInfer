@@ -1,8 +1,10 @@
 #pragma once
 
 #include <atomic>
+#include <typeinfo>
 
 #include "signal/signal.h"
+#include "tools/logger.h"
 #include "tools/threadpool.h"
 
 namespace cv_infer
@@ -24,6 +26,7 @@ public:
         PoolPtr = std::make_unique<ThreadPool>(thds);
         // InputList.resize(inputs);
         OutputList.resize(outputs);
+        NodeName = GetName();
     };
 
     virtual ~NodeBase() = default;
@@ -32,36 +35,64 @@ public:
 
     bool SetInputs(SignalQueRefList Inputs)
     {
+        if (Inputs.size() != InputCount)
+        {
+            LOGE(
+                "NodeBase::SetInputs() Inputs.size() != InputCount, excepted: "
+                "[%d], actual: [%d]",
+                InputCount, Inputs.size());
+            return false;
+        }
         InputList = Inputs;
         return true;
     }
     // void     SetInputsCount(std::uint8_t count) { InputCount = count; }
-    std::size_t GetInputsCount() const { return InputList.size(); }
+    std::size_t GetInputsCount() const { return InputCount; }
 
     // void       SetOutputsCount(std::uint8_t count) { OutputCount = count; }
-    std::size_t GetOutputsCount() const { return OutputList.size(); }
-    // SignalQueList GetOutputList() const { return OutputList; }
+    std::size_t      GetOutputsCount() const { return OutputList.size(); }
+    SignalQueRefList GetOutputList()
+    {
+        SignalQueRefList output_list;
+        for (auto& output : OutputList)
+        {
+            output_list.push_back(std::ref(output));
+        }
+        return std::move(output_list);
+    }
 
     virtual bool Start();
     virtual bool Stop();
     virtual bool Run();  // 不断的把Worker提交到线程池 为了输出的顺序性
-    // 需要控制最大提交数量不超过线程池大小
+                         // 需要控制最大提交数量不超过线程池大小
 
-    virtual std::vector<SignalBasePtr> Worker(std::vector<SignalBasePtr> input_signals) = 0;  // 处理输出数据
+    virtual std::vector<SignalBasePtr> Worker(
+        std::vector<SignalBasePtr> input_signals) = 0;  // 处理输出数据
 
-private:
+    void        SetName(const std::string node_name) { NodeName = node_name; }
+    std::string GetName()
+    {
+        if (NodeName.empty()) NodeName = Demangle(typeid(*this).name());
+        return NodeName;
+    }
+
+protected:
+    std::string Demangle(const char* name);
+
+    std::string NodeName;
     std::size_t InputCount{0};
     std::size_t OutputCount{0};
 
     SignalQueRefList InputList;
     SignalQueList    OutputList;
-    //std::vector<std::queue<std::shared_ptr<SignalBase>>> OutputList;
+    // std::vector<std::queue<std::shared_ptr<SignalBase>>> OutputList;
 
     std::unique_ptr<ThreadPool> PoolPtr;
     std::future<bool>           Future;
     std::atomic_bool            Running{false};
     std::chrono::milliseconds   SleepTime{10};
 
-    std::vector<SignalBasePtr> InputSignals; //[[inputs_port[0], inputs_port[1], ...]
+    std::vector<SignalBasePtr>
+        InputSignals;  //[[inputs_port[0], inputs_port[1], ...]
 };
 }  // namespace cv_infer

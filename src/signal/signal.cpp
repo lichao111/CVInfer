@@ -5,6 +5,16 @@
 namespace cv_infer
 {
 
+SignalQueRefList GetQueRef(SignalQueList &input_signals)
+{
+    SignalQueRefList que_ref_list;
+    for (auto &que : input_signals)
+    {
+        que_ref_list.push_back(std::ref(que));
+    }
+    return que_ref_list;
+}
+
 bool IsSignalQueRefListReady(const SignalQueRefList &input_signals)
 {
     return not std::any_of(input_signals.begin(), input_signals.end(),
