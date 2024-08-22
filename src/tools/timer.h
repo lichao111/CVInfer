@@ -10,8 +10,7 @@ namespace cv_infer
 class Timer
 {
 public:
-    Timer(const std::string name)
-        : Name(name), Start(std::chrono::steady_clock::now())
+    Timer(const std::string& name, bool open = true) : Name(name), Open(open), Start(std::chrono::steady_clock::now())
     {
     }
     Timer(const Timer&)            = delete;
@@ -24,16 +23,16 @@ public:
 
     void EndTimer()
     {
-        End = std::chrono::steady_clock::now();
-        Elapsed =
-            std::chrono::duration_cast<std::chrono::milliseconds>(End - Start)
-                .count();
+        End     = std::chrono::steady_clock::now();
+        Elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(End - Start).count();
         Total += Elapsed;
         Average = static_cast<float>(Total) / ++Times;
         Min     = std::min(Min, Elapsed);
         Max     = std::max(Max, Elapsed);
-        LOGI("timer [%s] cost: Average: [%f] ms, Min: [%lu] ms, Max: [%lu] ms",
-             Name.c_str(), Average, Min, Max);
+        if (Open)
+        {
+            LOGI("timer [%s] cost: Average: [%f] ms, Min: [%lu] ms, Max: [%lu] ms", Name.c_str(), Average, Min, Max);
+        }
     }
 
     void Reset()
@@ -54,8 +53,9 @@ private:
     std::uint64_t                                      Times{0};
     std::uint64_t                                      Total{0};
     float                                              Average{0.0f};
-    std::uint64_t Min{std::numeric_limits<std::uint64_t>::max()};
-    std::uint64_t Max{std::numeric_limits<std::uint64_t>::min()};
-    std::string   Name{"Timer"};
+    std::uint64_t                                      Min{std::numeric_limits<std::uint64_t>::max()};
+    std::uint64_t                                      Max{std::numeric_limits<std::uint64_t>::min()};
+    std::string                                        Name{"Timer"};
+    bool                                               Open{true};
 };
 }  // namespace cv_infer

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 #include <typeinfo>
 
 #include "signal/signal.h"
-#include "tools/logger.h"
 #include "tools/threadpool.h"
 
 namespace cv_infer
@@ -24,7 +24,6 @@ public:
         : InputCount(inputs), OutputCount(outputs)
     {
         PoolPtr = std::make_unique<ThreadPool>(thds);
-        // InputList.resize(inputs);
         OutputList.resize(outputs);
         NodeName = GetName();
     };
@@ -33,33 +32,10 @@ public:
 
     virtual bool Init() { return true; }
 
-    bool SetInputs(SignalQueRefList Inputs)
-    {
-        if (Inputs.size() != InputCount)
-        {
-            LOGE(
-                "NodeBase::SetInputs() Inputs.size() != InputCount, excepted: "
-                "[%d], actual: [%d]",
-                InputCount, Inputs.size());
-            return false;
-        }
-        InputList = Inputs;
-        return true;
-    }
-    // void     SetInputsCount(std::uint8_t count) { InputCount = count; }
-    std::size_t GetInputsCount() const { return InputCount; }
-
-    // void       SetOutputsCount(std::uint8_t count) { OutputCount = count; }
+    bool             SetInputs(SignalQueRefList Inputs);
+    std::size_t      GetInputsCount() const { return InputCount; }
     std::size_t      GetOutputsCount() const { return OutputList.size(); }
-    SignalQueRefList GetOutputList()
-    {
-        SignalQueRefList output_list;
-        for (auto& output : OutputList)
-        {
-            output_list.push_back(std::ref(output));
-        }
-        return std::move(output_list);
-    }
+    SignalQueRefList GetOutputList();
 
     virtual bool Start();
     virtual bool Stop();

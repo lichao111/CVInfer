@@ -286,7 +286,7 @@ bool EncoderNode::Run()
             LOGE("EncoderNode::Run() PushOneFrame return false");
         }
         CostTimer.EndTimer();
-        LOGI("EncoderNode::Run() frame_index = [%d]", frame_index);
+        LOGT("EncoderNode::Run() frame_index = [%d]", frame_index);
     }
     return true;
 };

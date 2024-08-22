@@ -43,7 +43,15 @@ add_subdirectory(test)
 find_package(OpenCV REQUIRED)
 find_package(CUDA REQUIRED)
 set(TensorRT_DIR /opt/TensorRT-8.6.1.6)
-# find_package(TensorRT REQUIRED)
+find_path(TENSORRT_INCLUDE_DIR NvInfer.h PATHS ${TensorRT_DIR})
+find_library(TENSORRT_LIBRARY nvinfer PATHS ${TensorRT_DIR})
+find_library(TENSORRT_ONNX_PARSER_LIBRARY nvonnxparser PATHS ${TensorRT_DIR})
+find_library(TENSORRT_LIBRARY_PLUGIN nvinfer_plugin PATHS ${TensorRT_DIR})
+
+# Check if TensorRT was found
+if (NOT TENSORRT_INCLUDE_DIR OR NOT TENSORRT_LIBRARY OR NOT TENSORRT_LIBRARY_PLUGIN)
+    message(FATAL_ERROR "TensorRT libraries or include directories not found.")
+endif()
 
 # ffmpeg not support find_package
 set(FFmpeg_INC /opt/ffmpeg/linux-install/include)
@@ -59,8 +67,30 @@ find_library(AVDEVICE_LIBRARY avdevice ${FFmpeg_LIB})
 find_path(AVSWSCALE_INCLUDE_DIR libswscale/swscale.h ${FFmpeg_INC})
 find_library(AVSWSCALE_LIBRARY swscale ${FFmpeg_LIB})
 
-target_include_directories(${LIB_CVINFER} PUBLIC ${AVCODEC_INCLUDE_DIR} ${AVFORMAT_INCLUDE_DIR} ${AVUTIL_INCLUDE_DIR} ${AVDEVICE_INCLUDE_DIR} ${AVSWSCALE_INCLUDE_DIR} )
-target_link_libraries(${LIB_CVINFER} PUBLIC ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY} ${AVSWSCALE_LIBRARY} )
+target_include_directories(${LIB_CVINFER} PUBLIC 
+    ${AVCODEC_INCLUDE_DIR} 
+    ${AVFORMAT_INCLUDE_DIR} 
+    ${AVUTIL_INCLUDE_DIR} 
+    ${AVDEVICE_INCLUDE_DIR} 
+    ${AVSWSCALE_INCLUDE_DIR} 
+    ${CUDA_INCLUDE_DIRS}
+    ${TENSORRT_INCLUDE_DIR})
 
-target_link_libraries(${LIB_CVINFER} PUBLIC ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${TensorRT_LIBRARIES} ${CUDNN_LIBRARIES} ${FFmpeg_LIBRARIES})
+target_link_libraries(${LIB_CVINFER} PUBLIC 
+    ${AVCODEC_LIBRARY} 
+    ${AVFORMAT_LIBRARY} 
+    ${AVUTIL_LIBRARY} 
+    ${AVDEVICE_LIBRARY} 
+    ${AVSWSCALE_LIBRARY} )
+
+target_link_libraries(${LIB_CVINFER} PUBLIC 
+    ${OpenCV_LIBS} 
+    ${CUDA_LIBRARIES} 
+    ${TensorRT_LIBRARIES} 
+    ${CUDNN_LIBRARIES} 
+    ${FFmpeg_LIBRARIES}
+    ${TENSORRT_LIBRARY} 
+    ${TENSORRT_LIBRARY_PLUGIN}
+    ${TENSORRT_ONNX_PARSER_LIBRARY})
+
 target_link_libraries(${EXE_DEMO} PRIVATE ${LIB_CVINFER})

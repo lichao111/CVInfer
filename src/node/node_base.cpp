@@ -38,6 +38,29 @@ std::string NodeBase::Demangle(const char* name)
         abi::__cxa_demangle(name, nullptr, nullptr, &status), std::free};
     return (status == 0) ? res.get() : name;
 }
+SignalQueRefList NodeBase::GetOutputList()
+{
+    SignalQueRefList output_list;
+    for (auto& output : OutputList)
+    {
+        output_list.push_back(std::ref(output));
+    }
+    return std::move(output_list);
+}
+
+bool NodeBase::SetInputs(SignalQueRefList Inputs)
+{
+    if (Inputs.size() != InputCount)
+    {
+        LOGE(
+            "NodeBase::SetInputs() Inputs.size() != InputCount, excepted: "
+            "[%d], actual: [%d]",
+            InputCount, Inputs.size());
+        return false;
+    }
+    InputList = Inputs;
+    return true;
+}
 
 bool NodeBase::Run()
 {

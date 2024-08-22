@@ -29,11 +29,7 @@ public:
     virtual ~DecoderNode() = default;
     bool                               Init(const std::string& source);
     virtual bool                       Run() override;
-    virtual std::vector<SignalBasePtr> Worker(
-        std::vector<SignalBasePtr> input_signals) override
-    {
-        return {};
-    };
+    virtual std::vector<SignalBasePtr> Worker(std::vector<SignalBasePtr> input_signals) override { return {}; };
 
 private:
     bool                     Open();
@@ -41,10 +37,9 @@ private:
     cv::Mat                  GetOneFrame();
     AVCodecContext*          GetAVCodecContext(int idx) const;
     int                      GetFirstStreamByType(enum AVMediaType type) const;
-    std::vector<std::string> GetDecoderNameByCodecId(
-        const AVCodecID codec_id) const;
-    cv::Mat DecodeToFrame(AVFrame* frame);
-    cv::Mat TryFlushing();
+    std::vector<std::string> GetDecoderNameByCodecId(const AVCodecID codec_id) const;
+    cv::Mat                  DecodeToFrame(AVFrame* frame);
+    cv::Mat                  TryFlushing();
 
 private:
     std::string URI;
@@ -65,9 +60,8 @@ private:
     bool NeedFlushing = false;
     bool VideoEOF     = false;
 
-    std::unordered_map<AVCodecID, std::vector<std::string>> DecodersPriority = {
-        {AV_CODEC_ID_H264, {"h264"}}};
+    std::unordered_map<AVCodecID, std::vector<std::string>> DecodersPriority = {{AV_CODEC_ID_H264, {"h264"}}};
 
-    Timer CostTimer{"decoder"};
+    Timer CostTimer{"decoder", false};
 };
 }  // namespace cv_infer

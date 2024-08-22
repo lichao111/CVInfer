@@ -70,6 +70,6 @@ private:
     std::string      OutFile;
 
     bool  FlushingEncodec();
-    Timer CostTimer{"encoder"};
+    Timer CostTimer{"encoder", false};
 };
 }  // namespace cv_infer

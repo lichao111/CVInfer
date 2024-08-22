@@ -103,7 +103,7 @@ TEST(runTests, encoder)
     EXPECT_TRUE(encoder->Init(out_url));
     EXPECT_TRUE(pipeline->BindAll({decoder, encoder}));
     EXPECT_TRUE(pipeline->Start());
-    std::this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(2s);
     EXPECT_TRUE(pipeline->Stop());
     LOGI("encoder done");
 }
