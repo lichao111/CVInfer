@@ -4,9 +4,10 @@
 
 #include "math/math.h"
 #include "math/nms.h"
-#include "model/model.h"
+#include "model/model_base.h"
 #include "signal/signal.h"
 #include "tools/logger.h"
+#include "tools/timer.h"
 
 namespace cv_infer
 {
@@ -188,6 +189,7 @@ public:
     // TODO: get return type from PostProcess
     std::vector<std::vector<float>> Forwards(const std::vector<SignalImageBGR>& inputs)
     {
+        timer.StartTimer();
         std::vector<cv::Mat> images;
         for (const auto& input : inputs)
         {
@@ -198,7 +200,13 @@ public:
             }
             images.push_back(input.Val);
         }
-        return (this->Engine).Forwards(images);
+        auto ret = (this->Engine).Forwards(images);
+        timer.EndTimer("forwards");
+        return ret;
     }
+
+private:
+    Timer timer{"PersonBall"};
 };
+
 }  // namespace cv_infer

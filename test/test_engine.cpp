@@ -6,6 +6,7 @@
 
 #include "engine/trt_infer.h"
 #include "model/personball.h"
+#include "node/infer_node.h"
 #include "signal/signal.h"
 #include "tools/timer.h"
 
@@ -37,25 +38,27 @@ TEST(TrtInfer, Personball)
     auto model = std::make_unique<PersonBall<trt::TrtEngine>>();
     EXPECT_TRUE(model->Init("/workspace/github/CVInfer/test/personball_512_768_best_1_0.onnx"));
     timer.EndTimer("model load");
-    auto image         = cv::imread("/workspace/github/CVInfer/test/test.jpg");
+    auto image         = cv::imread("/workspace/github/CVInfer/test/street.jpg");
     auto image_resized = cv::Mat(512, 768, CV_8UC3);
     cv::resize(image, image_resized, cv::Size(768, 512));
     auto input_signals = SignalImageBGR(image_resized);
     timer.EndTimer("image resize");
 
-    for (int i = 0; i <= 1000; i++)
-    {
-        auto output_signals = model->Forwards({input_signals});
-        timer.EndTimer("model forward");
-    }
-    // for (const auto& bbox : output_signals)
+    // for (int i = 0; i <= 1000; i++)
     // {
-    //     EXPECT_TRUE(bbox.size() == 5);
-    //     cv::Rect rect(cv::Point2f(bbox[0], bbox[1]), cv::Point2f(bbox[2], bbox[3]));
-    //     cv::rectangle(image, rect, cv::Scalar(0, 255, 0), 2);
+    auto output_signals = model->Forwards({input_signals});
+    timer.EndTimer("model forward");
     // }
+    for (const auto& bbox : output_signals)
+    {
+        EXPECT_TRUE(bbox.size() == 5);
+        cv::Rect rect(cv::Point2f(bbox[0], bbox[1]), cv::Point2f(bbox[2], bbox[3]));
+        cv::rectangle(image, rect, cv::Scalar(0, 255, 0), 2);
+    }
     cv::imwrite("personball.png", image);
 }
+
+TEST(TrtInfer, infer_node) { auto infer_node = std::make_shared<InferNode<PersonBall, trt::TrtEngine>>(); }
 
 int main(int argc, char** argv)
 {
