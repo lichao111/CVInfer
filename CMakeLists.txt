@@ -38,6 +38,7 @@ add_library(${LIB_CVINFER} SHARED)
 add_executable(${EXE_DEMO})
 
 add_subdirectory(src)
+enable_testing()
 add_subdirectory(test)
 
 find_package(OpenCV REQUIRED)

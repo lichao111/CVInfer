@@ -4,13 +4,13 @@
 #include <NvInferRuntimeBase.h>
 #include <NvOnnxParser.h>
 
-#include <unordered_map>
+#include <vector>
 
 #include "engine/engine_base.h"
 #include "signal/signal.h"
 #include "tools/logger.h"
 
-namespace cv_infer::engine
+namespace cv_infer::trt
 {
 enum class PrecisonType
 {
@@ -50,10 +50,23 @@ class NvInferLoggerC : public nvinfer1::ILogger
 class TrtEngine : public EngineBase
 {
 public:
-    bool                            LoadModel(const std::string& model);
-    std::vector<std::vector<float>> Forwards(const std::vector<SignalBasePtr>& input_signals,
-                                             std::vector<SignalBasePtr>&       output_signals);
-    bool                            UnloadModel();
+    virtual bool LoadModel(const std::string& model) override;
+
+    std::vector<std::vector<float>> Forwards(const std::vector<cv::Mat>& input_signals);
+
+    bool RegisterPreProcessFunc(
+        std::function<bool(const std::vector<cv::Mat>& inputs_batch, std::vector<float*>& oupputs)> func)
+    {
+        PreProcessFunc = func;
+        return true;
+    }
+
+    bool RegisterPostProcessFunc(
+        std::function<std::vector<std::vector<float>>(std::vector<std::vector<float>>& oupputs)> func)
+    {
+        PostProcessFunc = func;
+        return true;
+    }
 
 protected:
     bool        LoadEngine(const std::string& engine);
@@ -62,6 +75,8 @@ protected:
     void        CheckCudaErrorCode(cudaError_t code);
     bool        PreProcess(const std::vector<SignalBasePtr>& input_signals);
     std::vector<std::vector<float>> PostProcess();
+
+    bool IsDynamicBatch() const { return DynamicBatch; };
 
 private:
     NvInferLoggerC Logger;
@@ -75,11 +90,14 @@ private:
     std::vector<std::uint32_t>                   OutputsLen;         // hold the output size
     std::vector<float*>                          PreProcessBuffers;  // hold the pre-process buffer [cpu]
 
-    std::unordered_map<std::int32_t, std::string> TensorNameMap;
-    std::vector<nvinfer1::Dims>                   InputDims;
-    std::vector<std::vector<float>>               Outputs;
+    std::vector<nvinfer1::Dims>     InputDims;
+    std::vector<std::vector<float>> Outputs;
+    std::vector<std::string>        InputNames;
+    std::vector<std::string>        OutputNames;
 
-    std::vector<std::string> InputNames;
-    std::vector<std::string> OutputNames;
+    std::function<bool(const std::vector<cv::Mat>& inputs_batch, std::vector<float*>& oupputs)> PreProcessFunc;
+    std::function<std::vector<std::vector<float>>(std::vector<std::vector<float>>& oupputs)>    PostProcessFunc;
+
+    bool DynamicBatch{false};
 };
-}  // namespace cv_infer::engine
+}  // namespace cv_infer::trt

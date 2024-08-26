@@ -15,28 +15,29 @@ namespace cv_infer
 {
 enum class SignalType
 {
-    SIGNAL_UNKNOWN    = -1,
-    SIGNAL_INT8T      = 0,
-    SIGNAL_UINT8T     = 1,
-    SIGNAL_INT16T     = 2,
-    SIGNAL_UINT16T    = 3,
-    SIGNAL_INT32T     = 4,
-    SIGNAL_UINT32T    = 5,
-    SIGNAL_INT64T     = 6,
-    SIGNAL_UINT64T    = 7,
-    SIGNAL_FLOAT32T   = 8,
-    SIGNAL_FLOAT64T   = 9,
-    SIGNAL_BOOL       = 10,
-    SIGNAL_STRING     = 11,
-    SIGNAL_TENSOR     = 12,
-    SIGNAL_BBOX       = 13,
-    SIGNAL_KEYPOINTS  = 14,
-    SIGNAL_IMAGE_BGR  = 15,
-    SIGNAL_IMAGE_RGB  = 16,
-    SIGNAL_IMAGE_GRAY = 17,
-    SIGNAL_IMAGE_RGBA = 18,
-    SIGNAL_IMAGE_BGRA = 19,
-    SIGNAL_IMAGE_YUV  = 20,
+    SIGNAL_UNKNOWN = -1,
+    SIGNAL_INT8T,
+    SIGNAL_UINT8T,
+    SIGNAL_INT16T,
+    SIGNAL_UINT16T,
+    SIGNAL_INT32T,
+    SIGNAL_UINT32T,
+    SIGNAL_INT64T,
+    SIGNAL_UINT64T,
+    SIGNAL_FLOAT32T,
+    SIGNAL_FLOAT64T,
+    SIGNAL_BOOL,
+    SIGNAL_STRING,
+    SIGNAL_TENSOR,
+    SIGNAL_BBOX,
+    SIGNAL_BBOXES,
+    SIGNAL_KEYPOINTS,
+    SIGNAL_IMAGE_BGR,
+    SIGNAL_IMAGE_RGB,
+    SIGNAL_IMAGE_GRAY,
+    SIGNAL_IMAGE_RGBA,
+    SIGNAL_IMAGE_BGRA,
+    SIGNAL_IMAGE_YUV,
 };
 
 struct SignalBase
@@ -50,8 +51,7 @@ struct SignalBase
     std::uint64_t FrameIdx{0};
 };
 
-template <typename T, SignalType Type,
-          typename = std::enable_if<std::is_arithmetic_v<T>>>
+template <typename T, SignalType Type, typename = std::enable_if<std::is_arithmetic_v<T>>>
 struct SigalArithMetric : public SignalBase
 {
     SigalArithMetric(T value) : SignalBase(Type), Val(value) {}
@@ -62,14 +62,8 @@ struct SigalArithMetric : public SignalBase
 
 struct SignalString : public SignalBase
 {
-    SignalString(const std::string &value)
-        : SignalBase(SignalType::SIGNAL_STRING), Val(value)
-    {
-    }
-    SignalString(std::string &&value)
-        : SignalBase(SignalType::SIGNAL_STRING), Val(std::move(value))
-    {
-    }
+    SignalString(const std::string &value) : SignalBase(SignalType::SIGNAL_STRING), Val(value) {}
+    SignalString(std::string &&value) : SignalBase(SignalType::SIGNAL_STRING), Val(std::move(value)) {}
     virtual ~SignalString() override = default;
 
     std::string Val;
@@ -86,11 +80,7 @@ struct SigalBool : public SignalBase
 struct SignalBBox : public SignalBase
 {
     SignalBBox(float x_min, float y_min, float x_max, float y_max)
-        : SignalBase(SignalType::SIGNAL_BBOX),
-          Xmin(x_min),
-          Ymin(y_min),
-          Xmax(x_max),
-          Ymax(y_max)
+        : SignalBase(SignalType::SIGNAL_BBOX), Xmin(x_min), Ymin(y_min), Xmax(x_max), Ymax(y_max)
     {
     }
     virtual ~SignalBBox() override = default;
@@ -101,6 +91,20 @@ struct SignalBBox : public SignalBase
     float Ymax{0.0f};
 };
 
+struct SignalBBoxes : public SignalBase
+{
+    SignalBBoxes(const std::vector<std::array<float, 4>> &bboxes) : SignalBase(SignalType::SIGNAL_BBOX), Val(bboxes)
+    {
+        if (bboxes.empty())
+        {
+            throw std::invalid_argument("The input bboxes is empty");
+        }
+    }
+    virtual ~SignalBBoxes() override = default;
+
+    std::vector<std::array<float, 4>> Val;
+};
+
 struct SignalKeyPoints : public SignalBase
 {
     SignalKeyPoints(const std::array<std::pair<float, float>, 33> &keypoints)
@@ -108,9 +112,8 @@ struct SignalKeyPoints : public SignalBase
     {
         if (keypoints.size() != MaxKeyPoints)
         {
-            throw std::invalid_argument(
-                "The number of keypoints, " + std::to_string(keypoints.size()) +
-                " is not equal to " + std::to_string(MaxKeyPoints));
+            throw std::invalid_argument("The number of keypoints, " + std::to_string(keypoints.size()) +
+                                        " is not equal to " + std::to_string(MaxKeyPoints));
         }
     }
     virtual ~SignalKeyPoints() override = default;
@@ -121,8 +124,7 @@ struct SignalKeyPoints : public SignalBase
 
 struct SignalImageBGR : public SignalBase
 {
-    SignalImageBGR(const cv::Mat &image)
-        : SignalBase(SignalType::SIGNAL_IMAGE_BGR), Val(image)
+    SignalImageBGR(const cv::Mat &image) : SignalBase(SignalType::SIGNAL_IMAGE_BGR), Val(image)
     {
         if (image.empty())
         {
@@ -136,8 +138,7 @@ struct SignalImageBGR : public SignalBase
 
 struct SignalImageRGB : public SignalBase
 {
-    SignalImageRGB(const cv::Mat &image)
-        : SignalBase(SignalType::SIGNAL_IMAGE_RGB), Val(image)
+    SignalImageRGB(const cv::Mat &image) : SignalBase(SignalType::SIGNAL_IMAGE_RGB), Val(image)
     {
         if (image.empty())
         {

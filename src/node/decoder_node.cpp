@@ -51,15 +51,11 @@ bool DecoderNode::Open()
                 0);  // 在进行网络操作时允许的最大等待时间。1秒
     av_dict_set(&format_opts, "max_analyze_duration", "10", 0);
     av_dict_set(&format_opts, "probesize", "2048", 0);
-    auto start_time = std::chrono::system_clock::now();
-    std::unique_ptr<AVDictionary *, decltype(av_dict_free) *> free_guard{
-        &format_opts, av_dict_free};
-    if (auto ret =
-            avformat_open_input(&Ctx, URI.c_str(), nullptr, &format_opts);
-        ret != 0)
+    auto                                                      start_time = std::chrono::system_clock::now();
+    std::unique_ptr<AVDictionary *, decltype(av_dict_free) *> free_guard{&format_opts, av_dict_free};
+    if (auto ret = avformat_open_input(&Ctx, URI.c_str(), nullptr, &format_opts); ret != 0)
     {
-        LOGE("call avformat_open_input return [%d], source = [%s]", ret,
-             URI.c_str());
+        LOGE("call avformat_open_input return [%d], source = [%s]", ret, URI.c_str());
         return false;
     }
     StreamIdx = GetFirstStreamByType(AVMediaType::AVMEDIA_TYPE_VIDEO);
@@ -104,8 +100,7 @@ bool DecoderNode::Open()
     return true;
 }
 
-std::vector<std::string> DecoderNode::GetDecoderNameByCodecId(
-    const AVCodecID codec_id) const
+std::vector<std::string> DecoderNode::GetDecoderNameByCodecId(const AVCodecID codec_id) const
 {
     if (DecodersPriority.contains(codec_id))
     {
@@ -130,16 +125,14 @@ int DecoderNode::GetFirstStreamByType(enum AVMediaType type) const
 AVCodecContext *DecoderNode::GetAVCodecContext(int idx) const
 {
     auto *par = Ctx->streams[idx]->codecpar;
-    LOGI("CodecId = [%d], Width = [%d], Height = [%d]", par->codec_id,
-         par->width, par->height);
+    LOGI("CodecId = [%d], Width = [%d], Height = [%d]", par->codec_id, par->width, par->height);
 
     const AVCodec *decoder = nullptr;
 
     auto decoder_name_list = GetDecoderNameByCodecId(par->codec_id);
     for (const auto &decoder_name : decoder_name_list)
     {
-        if (decoder = avcodec_find_decoder_by_name(decoder_name.c_str());
-            decoder == nullptr)
+        if (decoder = avcodec_find_decoder_by_name(decoder_name.c_str()); decoder == nullptr)
         {
             LOGT("try to find decoder:[%s] failed", decoder_name.c_str());
             continue;
@@ -160,8 +153,7 @@ AVCodecContext *DecoderNode::GetAVCodecContext(int idx) const
     {
         return nullptr;
     }
-    if (avcodec_parameters_to_context(cctx, par) != 0 or
-        avcodec_open2(cctx, decoder, nullptr) != 0)
+    if (avcodec_parameters_to_context(cctx, par) != 0 or avcodec_open2(cctx, decoder, nullptr) != 0)
     {
         avcodec_free_context(&cctx);
         return nullptr;
@@ -198,8 +190,7 @@ cv::Mat DecoderNode::GetOneFrame()
 {
     while (av_read_frame(Ctx, Pkt) == 0)
     {
-        std::unique_ptr<AVPacket, decltype(av_packet_unref) *> unref_guard{
-            Pkt, av_packet_unref};
+        std::unique_ptr<AVPacket, decltype(av_packet_unref) *> unref_guard{Pkt, av_packet_unref};
         if (Pkt->stream_index != StreamIdx)
         {
             continue;
@@ -228,15 +219,13 @@ cv::Mat DecoderNode::GetOneFrame()
 cv::Mat DecoderNode::DecodeToFrame(AVFrame *frame)
 {
     // sws to convert
-    Sws = sws_getCachedContext(
-        Sws, Frame->width, Frame->height,
-        static_cast<AVPixelFormat>(Frame->format), Frame->width, Frame->height,
-        AVPixelFormat::AV_PIX_FMT_BGR24, OutFlags, nullptr, nullptr, nullptr);
+    Sws =
+        sws_getCachedContext(Sws, Frame->width, Frame->height, static_cast<AVPixelFormat>(Frame->format), Frame->width,
+                             Frame->height, AVPixelFormat::AV_PIX_FMT_BGR24, OutFlags, nullptr, nullptr, nullptr);
     cv::Mat image(Frame->height, Frame->width, CV_8UC3);
     int     linesizes[1]{};
     linesizes[0] = image.step1();
-    sws_scale(Sws, Frame->data, Frame->linesize, 0, Frame->height, &image.data,
-              linesizes);
+    sws_scale(Sws, Frame->data, Frame->linesize, 0, Frame->height, &image.data, linesizes);
 
     return image;
 }

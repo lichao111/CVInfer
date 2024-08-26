@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <limits>
+#include <string>
 
 #include "tools/logger.h"
 namespace cv_infer
@@ -21,7 +22,7 @@ public:
 
     void StartTimer() { Start = std::chrono::steady_clock::now(); }
 
-    void EndTimer()
+    void EndTimer(const std::string& name = "")
     {
         End     = std::chrono::steady_clock::now();
         Elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(End - Start).count();
@@ -31,8 +32,10 @@ public:
         Max     = std::max(Max, Elapsed);
         if (Open)
         {
-            LOGI("timer [%s] cost: Average: [%f] ms, Min: [%lu] ms, Max: [%lu] ms", Name.c_str(), Average, Min, Max);
+            LOGI("timer [%s] - [%s] cost: Average: [%f] ms, Min: [%lu] ms, Max: [%lu] ms", Name.c_str(), name.c_str(),
+                 Average, Min, Max);
         }
+        Start = std::chrono::steady_clock::now();
     }
 
     void Reset()
