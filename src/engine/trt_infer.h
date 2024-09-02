@@ -9,6 +9,7 @@
 #include "engine/engine_base.h"
 #include "signal/signal.h"
 #include "tools/logger.h"
+#include "tools/timer.h"
 
 namespace cv_infer::trt
 {
@@ -99,5 +100,8 @@ private:
     std::function<std::vector<std::vector<float>>(std::vector<std::vector<float>>& oupputs)>    PostProcessFunc;
 
     bool DynamicBatch{false};
+
+    Timer CostTimerPre{"TrtEnginePreProcess"};
+    Timer CostTimerPost{"TrtEnginePostProcess"};
 };
 }  // namespace cv_infer::trt

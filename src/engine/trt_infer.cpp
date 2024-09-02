@@ -268,11 +268,13 @@ std::vector<std::vector<float>> TrtEngine::Forwards(const std::vector<cv::Mat>& 
     }
 
     // auto batch_size = static_cast<std::int32_t>()
+    CostTimerPre.StartTimer();
     if (not PreProcessFunc(input_signals, PreProcessBuffers))
     {
         LOGE("PreProcess failed");
         return {};
     }
+    CostTimerPre.EndTimer("Preprocess");
 
     // create cuda stream for inference
     cudaStream_t stream;
@@ -335,7 +337,10 @@ std::vector<std::vector<float>> TrtEngine::Forwards(const std::vector<cv::Mat>& 
     CheckCudaErrorCode(cudaStreamSynchronize(stream));
     CheckCudaErrorCode(cudaStreamDestroy(stream));
 
-    return PostProcessFunc(Outputs);
+    CostTimerPost.StartTimer();
+    auto ret = PostProcessFunc(Outputs);
+    CostTimerPost.EndTimer("Postprocess");
+    return ret;
 }
 
 void TrtEngine::CheckCudaErrorCode(cudaError_t code)

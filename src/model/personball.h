@@ -187,26 +187,26 @@ public:
     }
 
     // TODO: get return type from PostProcess
-    std::vector<std::vector<float>> Forwards(const std::vector<SignalImageBGR>& inputs)
+    std::vector<std::vector<float>> Forwards(const std::vector<std::shared_ptr<SignalImageBGR>>& inputs)
     {
-        timer.StartTimer();
         std::vector<cv::Mat> images;
         for (const auto& input : inputs)
         {
-            if (input.Val.empty())
+            if (input->Val.empty())
             {
                 LOGE("The input image is empty");
                 return {};
             }
-            images.push_back(input.Val);
+            cv::Mat resized;
+            cv::resize(input->Val, resized, cv::Size(768, 512));
+            images.push_back(resized);
         }
         auto ret = (this->Engine).Forwards(images);
-        timer.EndTimer("forwards");
         return ret;
     }
 
 private:
-    Timer timer{"PersonBall"};
+    Timer CostTimer{"resize"};
 };
 
 }  // namespace cv_infer

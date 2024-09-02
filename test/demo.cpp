@@ -17,7 +17,7 @@ using namespace cv_infer;
 using namespace std::chrono_literals;
 int main()
 {
-    Logger::SetLogLevel(LogLevel::TRACE);
+    Logger::SetLogLevel(LogLevel::INFO);
     LOGI("version: %s", LIB_VERSION);
     LOGI("branch: %s", BUILD_BRANCH);
     LOGI("commit: %s", BUILD_COMMIT);
@@ -53,7 +53,7 @@ int main()
     }
     pipeline->Start();
 
-    std::this_thread::sleep_for(10s);
+    std::this_thread::sleep_for(5s);
     pipeline->Stop();
     return 0;
 }

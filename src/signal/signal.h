@@ -3,6 +3,7 @@
 #include <tools/queue.h>
 
 #include <array>
+#include <chrono>
 #include <memory>
 #include <opencv2/core.hpp>
 #include <stdexcept>
@@ -49,6 +50,8 @@ struct SignalBase
 
     SignalType    SigType{SignalType::SIGNAL_UNKNOWN};
     std::uint64_t FrameIdx{0};
+
+    std::vector<std::chrono::steady_clock::time_point> TimeStamps;
 };
 
 template <typename T, SignalType Type, typename = std::enable_if<std::is_arithmetic_v<T>>>
@@ -152,13 +155,20 @@ struct SignalImageRGB : public SignalBase
 
 using SignalBasePtr    = std::shared_ptr<SignalBase>;
 using SignalQue        = Queue<SignalBasePtr>;
+using SignalQuePtr     = std::shared_ptr<SignalQue>;
+using SignalQuePtrList = std::vector<SignalQuePtr>;
 using SignalQueRefList = std::vector<std::reference_wrapper<SignalQue>>;
 using SignalQueList    = std::vector<SignalQue>;
 
 SignalQueRefList GetQueRef(SignalQueList &input_signals);
-bool             IsSignalQueRefListReady(const SignalQueRefList &input_signals);
+
+bool IsSignalQueListReady(const SignalQueRefList &input_signals);
+bool IsSignalQueListReady(const SignalQuePtrList &input_signals);
 
 // 所有的信号队列都不为空时，返回信号队列中的第一个信号组成的列表
-std::vector<SignalBasePtr> GetSignaList(const SignalQueRefList &input_signals);
+std::vector<SignalBasePtr> GetSignalList(const SignalQueRefList &input_signals);
+std::vector<SignalBasePtr> GetSignalList(const SignalQuePtrList &input_signals);
+
+// TODO: 将信号队列抽象为class, 可以阻塞等待信号队列中的信号， 现在这种方式会返回空信息，靠外部判断是否有有效信息
 
 }  // namespace cv_infer

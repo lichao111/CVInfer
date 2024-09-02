@@ -1,5 +1,6 @@
 #include "decoder_node.h"
 
+#include <chrono>
 #include <opencv2/opencv.hpp>
 
 #include "signal/signal.h"
@@ -268,8 +269,9 @@ bool DecoderNode::Run()
         }
         auto signal      = std::make_shared<SignalImageBGR>(frame);
         signal->FrameIdx = FrameIndex++;
+        signal->TimeStamps.push_back(std::chrono::steady_clock::now());
 
-        OutputList[0].Push(signal);
+        OutputList[0]->Push(signal);
     }
     return true;
 }

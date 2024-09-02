@@ -20,16 +20,16 @@ namespace cv_infer
 class DecoderNode : public NodeBase
 {
 public:
-    DecoderNode() : NodeBase(0, 1, 1){};
+    DecoderNode() : NodeBase(0, 1) { SetName("Decoder"); };
     DecoderNode(const std::string& source)
-        : NodeBase(0, 1, 1),
+        : NodeBase(0, 1),
           URI(source){
 
           };
     virtual ~DecoderNode() = default;
-    bool                               Init(const std::string& source);
-    virtual bool                       Run() override;
-    virtual std::vector<SignalBasePtr> Worker(std::vector<SignalBasePtr> input_signals) override { return {}; };
+    bool         Init(const std::string& source);
+    virtual bool Run() override;
+    virtual bool Worker() override { return true; };
 
 private:
     bool                     Open();
@@ -62,6 +62,6 @@ private:
 
     std::unordered_map<AVCodecID, std::vector<std::string>> DecodersPriority = {{AV_CODEC_ID_H264, {"h264"}}};
 
-    Timer CostTimer{"decoder", false};
+    Timer CostTimer{"decoder", true};
 };
 }  // namespace cv_infer

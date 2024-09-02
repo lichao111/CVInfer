@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <future>
 #include <memory>
@@ -55,89 +56,43 @@ TEST(runTests, Que)
 class NodeImplTestBase : public NodeBase
 {
 public:
-    NodeImplTestBase(std::size_t inputs, std::size_t outputs, std::size_t thds = 1) : NodeBase(inputs, outputs, thds) {}
+    NodeImplTestBase(std::size_t inputs, std::size_t outputs) : NodeBase(inputs, outputs) {}
 
-    virtual std::vector<SignalBasePtr> Worker(std::vector<SignalBasePtr> input_signals) override
+    virtual bool Worker() override
     {
-        std::vector<SignalBasePtr> output_signals;
-        for (auto& sig : input_signals)
+        for (auto& sig_queue : InputList)
         {
-            LOGI("NodeImpl::Worker() get signal in thread [%ld]", std::this_thread::get_id());
-            output_signals.push_back(std::move(sig));
-        }
-
-        return output_signals;
-    }
-};
-
-class NodeImplTestArthMetric : public NodeBase
-{
-public:
-    NodeImplTestArthMetric(std::size_t inputs, std::size_t outputs, std::size_t thds = 1)
-        : NodeBase(inputs, outputs, thds)
-    {
-    }
-    virtual std::vector<SignalBasePtr> Worker(std::vector<SignalBasePtr> input_signals) override
-    {
-        std::vector<SignalBasePtr> output_signals;
-        for (auto& sig : input_signals)
-        {
-            // check if sig type is SignalArithMetric
-            if (sig->GetSignalType() != SignalType::SIGNAL_UINT8T)
+            if (sig_queue->Empty())
             {
-                LOGE("NodeImpl::Worker() get signal type error, excepted");
-                continue;
+                return false;
             }
-
-            LOGI("NodeImpl::Worker() get signal in thread [%ld]", std::this_thread::get_id());
-            output_signals.push_back(std::move(sig));
+            SignalBasePtr sig;
+            sig_queue->Pop(sig);
+            OutputList[0]->Push(std::move(sig));
         }
-
-        return output_signals;
+        return true;
     }
 };
 
 TEST(runTests, NodeBase)
 {
     auto             input_count  = 4;
-    auto             output_count = 4;
-    auto             thread_count = 2;
-    NodeImplTestBase node(input_count, output_count, thread_count);
-    SignalQueList    input_signals;
-    for (int i = 0; i < 4; i++)
-    {
-        input_signals.push_back(SignalQue());
-    }
-    SignalQueRefList input_signals_ref;
-    for (auto& que : input_signals)
-    {
-        que.Push(std::make_shared<SignalBase>());
-        input_signals_ref.push_back(std::ref(que));
-    }
-    node.SetInputs(input_signals_ref);
-    node.Start();
-    std::this_thread::sleep_for(10ms);
-    node.Stop();
-}
+    auto             output_count = 1;
+    NodeImplTestBase node(input_count, output_count);
+    SignalQuePtrList input_signals;
+    SignalQuePtr     output_signals = std::make_shared<SignalQue>();
 
-TEST(runTests, NodeBaseArthMetric)
-{
-    auto                   input_count  = 4;
-    auto                   output_count = 4;
-    auto                   thread_count = 2;
-    NodeImplTestArthMetric node(input_count, output_count, thread_count);
-    SignalQueList          input_signals;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < input_count; i++)
     {
-        input_signals.push_back(SignalQue());
+        input_signals.push_back(std::make_shared<SignalQue>());
     }
-    SignalQueRefList input_signals_ref;
+
     for (auto& que : input_signals)
     {
-        que.Push(std::make_shared<SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(3));
-        input_signals_ref.push_back(std::ref(que));
+        que->Push(std::make_shared<SignalBase>());
+        node.AddInputs(que);
     }
-    node.SetInputs(input_signals_ref);
+    node.AddOutputs(output_signals);
     node.Start();
     std::this_thread::sleep_for(10ms);
     node.Stop();
@@ -152,51 +107,60 @@ TEST(runTests, UUID)
     ASSERT_TRUE(true);
 }
 
-class NodeImplAdd : public NodeBase
+class NodeImplIcr : public NodeBase
 {
 public:
-    NodeImplAdd(std::size_t thds = 1) : NodeBase(1, 1, thds) {}
-    virtual std::vector<SignalBasePtr> Worker(std::vector<SignalBasePtr> input_signals) override
+    NodeImplIcr() : NodeBase(1, 1) {}
+    virtual bool Worker() override
     {
-        std::vector<SignalBasePtr> output_signals;
-        for (auto& sig : input_signals)
+        SignalBasePtr input_signals;
+        if (not InputList[0]->Pop(input_signals))
         {
-            // check if sig type is SignalArithMetric
-            if (sig->GetSignalType() != SignalType::SIGNAL_UINT8T)
-            {
-                LOGE("NodeImpl::Worker() get signal type error, excepted");
-                continue;
-            }
-
-            auto value = std::dynamic_pointer_cast<SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(sig)->Val;
-            LOGI(
-                "NodeImpl::Worker() get signal in thread [%ld], receive value  "
-                "= [%d],  output value = [%d]",
-                std::this_thread::get_id(), value, value + 1);
-            auto sigal_out = std::make_shared<SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(++value);
-
-            output_signals.push_back(sigal_out);
+            return false;
         }
-        return output_signals;
+
+        // check if sig type is SignalArithMetric
+        if (input_signals->GetSignalType() != SignalType::SIGNAL_UINT8T)
+        {
+            LOGE("NodeImpl::Worker() get signal type error, excepted");
+            return true;
+        }
+
+        auto value =
+            std::dynamic_pointer_cast<SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(input_signals)->Val;
+        auto sigal_out = std::make_shared<SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(++value);
+        OutputList[0]->Push(sigal_out);
+
+        return true;
     }
 };
 
-TEST(runTests, NodeBaseAdd)
+TEST(runTests, NodeBaseIcr)
 {
-    auto                      thread_count = 1;
-    std::shared_ptr<NodeBase> node1        = std::make_shared<NodeImplAdd>(thread_count);
-    SignalQue                 input_signal;
-    input_signal.Push(std::make_shared<SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(8));
-    std::unique_ptr<PipelineBase> pipeline      = std::make_unique<PipelineBase>("test");
-    SignalQueList                 input_signals = {input_signal};
-    ASSERT_TRUE(pipeline->GetName() == "test");
-    node1->SetInputs(GetQueRef(input_signals));
-    auto ret =
-        pipeline->BindAll({node1, std::make_shared<NodeImplAdd>(thread_count),
-                           std::make_shared<NodeImplAdd>(thread_count), std::make_shared<NodeImplAdd>(thread_count)});
+    std::shared_ptr<NodeBase> node1 = std::make_shared<NodeImplIcr>();
+    std::shared_ptr<NodeBase> node2 = std::make_shared<NodeImplIcr>();
+    std::shared_ptr<NodeBase> node3 = std::make_shared<NodeImplIcr>();
+    std::shared_ptr<NodeBase> node4 = std::make_shared<NodeImplIcr>();
+
+    SignalQuePtr input_signal  = std::make_shared<SignalQue>();
+    SignalQuePtr output_signal = std::make_shared<SignalQue>();
+
+    input_signal->Push(std::make_shared<SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(0));
+    std::unique_ptr<PipelineBase> pipeline = std::make_unique<PipelineBase>("pipeline_icr");
+    node1->AddInputs(input_signal);
+    ASSERT_TRUE(pipeline->GetName() == "pipeline_icr");
+    auto ret = pipeline->BindAll({node1, node2, node3, node4});
+    node4->AddOutputs(output_signal);
     ASSERT_TRUE(ret);
 
     pipeline->Start();
     std::this_thread::sleep_for(40ms);
+    while (not output_signal->Empty())
+    {
+        SignalBasePtr signal;
+        output_signal->Pop(signal);
+        auto value = std::dynamic_pointer_cast<SigalArithMetric<uint8_t, SignalType::SIGNAL_UINT8T>>(signal)->Val;
+        ASSERT_EQ(value, 4);
+    }
     pipeline->Stop();
 }

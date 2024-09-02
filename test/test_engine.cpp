@@ -41,7 +41,7 @@ TEST(TrtInfer, Personball)
     auto image         = cv::imread("/workspace/github/CVInfer/test/street.jpg");
     auto image_resized = cv::Mat(512, 768, CV_8UC3);
     cv::resize(image, image_resized, cv::Size(768, 512));
-    auto input_signals = SignalImageBGR(image_resized);
+    auto input_signals = std::make_shared<SignalImageBGR>(image_resized);
     timer.EndTimer("image resize");
 
     // for (int i = 0; i <= 1000; i++)

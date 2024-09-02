@@ -1,6 +1,7 @@
 #include "pipeline_base.h"
 
 #include "node/node_base.h"
+#include "signal/signal.h"
 #include "tools/logger.h"
 
 namespace cv_infer
@@ -37,14 +38,12 @@ bool PipelineBase::Check()
     auto size = NodeList.size();
     for (auto node_idx = 0; node_idx < size - 1; ++node_idx)
     {
-        if (NodeList[node_idx]->GetOutputsCount() !=
-            NodeList[node_idx + 1]->GetInputsCount())
+        if (NodeList[node_idx]->GetOutputsCount() != NodeList[node_idx + 1]->GetInputsCount())
         {
             LOGE(
                 "Node [%s] output count = [%d] is not equal to Node [%s] input "
                 "count  = [%d]",
-                NodeList[node_idx]->GetName().c_str(),
-                NodeList[node_idx]->GetOutputsCount(),
+                NodeList[node_idx]->GetName().c_str(), NodeList[node_idx]->GetOutputsCount(),
                 NodeList[node_idx + 1]->GetName().c_str()),
                 NodeList[node_idx + 1]->GetInputsCount();
             return false;
@@ -61,8 +60,7 @@ bool PipelineBase::BindAll(std::vector<std::shared_ptr<NodeBase>> node_list)
     {
         if (not Bind(NodeList[node_idx], NodeList[node_idx + 1]))
         {
-            LOGE("Bind Node [%s] and Node [%s] failed",
-                 NodeList[node_idx]->GetName().c_str(),
+            LOGE("Bind Node [%s] and Node [%s] failed", NodeList[node_idx]->GetName().c_str(),
                  NodeList[node_idx + 1]->GetName().c_str());
             return false;
         }
@@ -70,19 +68,21 @@ bool PipelineBase::BindAll(std::vector<std::shared_ptr<NodeBase>> node_list)
     return true;
 }
 
-bool PipelineBase::Bind(std::shared_ptr<NodeBase> pre,
-                        std::shared_ptr<NodeBase> next)
+// TODO: 默认了所有节点都是一个输出!!!
+bool PipelineBase::Bind(std::shared_ptr<NodeBase> pre, std::shared_ptr<NodeBase> next)
 {
-    if (pre->GetOutputsCount() != next->GetInputsCount())
+    SignalQuePtr signal_queue = std::make_shared<SignalQue>();
+    if (not next->AddInputs(signal_queue))
     {
-        LOGE(
-            "Node [%s] output count = [%d] is not equal to Node [%s] input "
-            "count  = [%d]",
-            pre->GetName().c_str(), pre->GetOutputsCount(),
-            next->GetName().c_str(), next->GetInputsCount());
+        LOGE("Node [%s] AddInputs failed", next->GetName().c_str());
         return false;
     }
-    return next->SetInputs(pre->GetOutputList());
+    if (not pre->AddOutputs(signal_queue))
+    {
+        LOGE("Node [%s] AddOutputs failed", pre->GetName().c_str());
+        return false;
+    }
+    return true;
 }
 
 bool PipelineBase::SetSource(const std::string& source)

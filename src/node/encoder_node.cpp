@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "signal/signal.h"
+#include "tools/logger.h"
 namespace cv_infer
 {
 EncoderNode ::~EncoderNode()
@@ -17,9 +18,7 @@ bool EncoderNode::Init(const std::string &file_name)
 }
 bool EncoderNode::Open(const OutCfg &cfg)
 {
-    if (auto ret = avformat_alloc_output_context2(&Ctx, nullptr, nullptr,
-                                                  cfg.out_url.c_str());
-        ret < 0)
+    if (auto ret = avformat_alloc_output_context2(&Ctx, nullptr, nullptr, cfg.out_url.c_str()); ret < 0)
     {
         LOGE("avformat_alloc_output_context2 return [%d]", ret);
         return false;
@@ -75,16 +74,14 @@ bool EncoderNode::Open(const OutCfg &cfg)
     CCtx->height    = cfg.height;
     CCtx->time_base = AVRational{1, cfg.fps};
     CCtx->pix_fmt   = AV_PIX_FMT_YUV420P;
-    if (Ctx->oformat->flags & AVFMT_GLOBALHEADER)
-        CCtx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+    if (Ctx->oformat->flags & AVFMT_GLOBALHEADER) CCtx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     AVDictionary *opt = nullptr;
     for (auto &o : cfg.opt)
     {
         av_dict_set(&opt, o.first.c_str(), o.second.c_str(), 0);
     }
-    std::unique_ptr<AVDictionary *, decltype(av_dict_free) *> up_opt{
-        &opt, av_dict_free};
+    std::unique_ptr<AVDictionary *, decltype(av_dict_free) *> up_opt{&opt, av_dict_free};
 
     if (auto r = avcodec_open2(CCtx, codec, &opt); r != 0)
     {
@@ -136,8 +133,7 @@ bool EncoderNode::FlushingEncodec()
         {
             continue;
         }
-        std::unique_ptr<AVPacket, decltype(av_packet_unref) *> unref_guard{
-            Pkt, av_packet_unref};
+        std::unique_ptr<AVPacket, decltype(av_packet_unref) *> unref_guard{Pkt, av_packet_unref};
 
         av_packet_rescale_ts(Pkt, CCtx->time_base, St->time_base);
         Pkt->stream_index = St->index;
@@ -157,10 +153,9 @@ bool EncoderNode::PushOneFrame(const cv::Mat &image)
         LOGW("not ready!");
         return false;
     }
-    Sws = sws_getCachedContext(
-        Sws, image.cols, image.rows, AVPixelFormat::AV_PIX_FMT_BGR24,
-        Frame->width, Frame->height, static_cast<AVPixelFormat>(Frame->format),
-        OutFlags, nullptr, nullptr, nullptr);
+    Sws =
+        sws_getCachedContext(Sws, image.cols, image.rows, AVPixelFormat::AV_PIX_FMT_BGR24, Frame->width, Frame->height,
+                             static_cast<AVPixelFormat>(Frame->format), OutFlags, nullptr, nullptr, nullptr);
     if (Sws == nullptr)
     {
         LOGW("sws is nullptr");
@@ -169,8 +164,7 @@ bool EncoderNode::PushOneFrame(const cv::Mat &image)
 
     int linesizes[1]{};
     linesizes[0] = image.step1();
-    sws_scale(Sws, &image.data, linesizes, 0, image.rows, Frame->data,
-              Frame->linesize);
+    sws_scale(Sws, &image.data, linesizes, 0, image.rows, Frame->data, Frame->linesize);
     if (auto r = avcodec_send_frame(CCtx, Frame); r != 0)
     {
         LOGW("avcodec_send_frame return [%d]", r);
@@ -189,8 +183,7 @@ bool EncoderNode::PushOneFrame(const cv::Mat &image)
             LOGW("avcodec_receive_packet return [%d]", r);
             return false;
         }
-        std::unique_ptr<AVPacket, decltype(av_packet_unref) *> unref_guard{
-            Pkt, av_packet_unref};
+        std::unique_ptr<AVPacket, decltype(av_packet_unref) *> unref_guard{Pkt, av_packet_unref};
 
         av_packet_rescale_ts(Pkt, CCtx->time_base, St->time_base);
         Pkt->stream_index = St->index;
@@ -244,31 +237,25 @@ bool EncoderNode::Run()
 {
     while (Running)
     {
-        while (Running and not IsSignalQueRefListReady(InputList))
+        while (Running and not IsSignalQueListReady(InputList))
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         if (not Running)
         {
             break;
         }
-        auto signal = GetSignaList(InputList);
+        auto signal = GetSignalList(InputList);
         if (signal.size() != 1)
         {
-            LOGE(
-                "EncoderNode::Run() signal.size() != 1, excepted: [1], "
-                "actual: "
-                "[%d]",
-                signal.size());
+            LOGE("EncoderNode::Run() signal.size() != 1, excepted: [1], actual: [%d]", signal.size());
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
         auto input_signal = signal.front();
         if (input_signal->GetSignalType() != SignalType::SIGNAL_IMAGE_BGR)
         {
-            LOGE(
-                "EncoderNode::Run() input_signal->GetSignalType() != "
-                "SignalType::SIGNAL_IMAGE_BGR");
+            LOGE("EncoderNode::Run() input_signal->GetSignalType() != SignalType::SIGNAL_IMAGE_BGR");
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
@@ -276,7 +263,7 @@ bool EncoderNode::Run()
         if (image == nullptr)
         {
             LOGE("EncoderNode::Run() image == nullptr");
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
         auto frame_index = image->FrameIdx;
@@ -286,7 +273,10 @@ bool EncoderNode::Run()
             LOGE("EncoderNode::Run() PushOneFrame return false");
         }
         CostTimer.EndTimer();
-        LOGT("EncoderNode::Run() frame_index = [%d]", frame_index);
+        auto now    = std::chrono::steady_clock::now();
+        auto peroid = std::chrono::duration_cast<std::chrono::milliseconds>(now - image->TimeStamps.front()).count();
+        auto fps    = 1000.f / peroid;
+        LOGI("FrameIndex = [%d], whole peroid = [%ld] ms", frame_index, peroid);
     }
     return true;
 };

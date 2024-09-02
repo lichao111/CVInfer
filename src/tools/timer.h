@@ -11,7 +11,8 @@ namespace cv_infer
 class Timer
 {
 public:
-    Timer(const std::string& name, bool open = true) : Name(name), Open(open), Start(std::chrono::steady_clock::now())
+    Timer(const std::string& name = "", bool open = true)
+        : Name(name), Open(open), Start(std::chrono::steady_clock::now())
     {
     }
     Timer(const Timer&)            = delete;
@@ -32,9 +33,10 @@ public:
         Max     = std::max(Max, Elapsed);
         if (Open)
         {
-            LOGI("timer [%s] - [%s] cost: Average: [%f] ms, Min: [%lu] ms, Max: [%lu] ms", Name.c_str(), name.c_str(),
-                 Average, Min, Max);
+            LOGI("[%-12s] cost: Average: [%f] ms, Min: [%lu] ms, Max: [%lu] ms",
+                 name.empty() ? Name.c_str() : name.c_str(), Average, Min, Max);
         }
+
         Start = std::chrono::steady_clock::now();
     }
 

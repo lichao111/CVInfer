@@ -18,39 +18,25 @@ struct OutCfg
 {
     std::string                                  out_url;
     std::string                                  codec    = "h264_nvenc";
-    int64_t                                      bit_rate = 8000000;
+    int                                          bit_rate = 8000000;
     int                                          width    = 1920;
     int                                          height   = 1080;
     int                                          fps      = 30;
-    std::unordered_map<std::string, std::string> opt      = {
-        {"preset", "medium"}, {"profile", "main"}, {"crf", "18"}};
-
-    // owt param
-    std::string channelID;
-    std::string appID;
-    std::string appKey;
-    std::string userID;
-    std::string userName;
-    uint32_t    timeoutHours{24};
-    bool        async_leave{true};
+    std::unordered_map<std::string, std::string> opt      = {{"preset", "medium"}, {"profile", "main"}, {"crf", "18"}};
 };
 class EncoderNode : public NodeBase
 {
 public:
-    EncoderNode() : NodeBase(1, 0, 1) {}
+    EncoderNode() : NodeBase(1, 0) { SetName("Decoder"); }
     EncoderNode(const std::string &file_name)
-        : NodeBase(1, 0, 1),
+        : NodeBase(1, 0),
           OutFile(file_name){
 
           };
     virtual ~EncoderNode();
-    bool                               Init(const std::string &file_name);
-    virtual bool                       Run() override;
-    virtual std::vector<SignalBasePtr> Worker(
-        std::vector<SignalBasePtr> input_signals) override
-    {
-        return {};
-    };
+    bool         Init(const std::string &file_name);
+    virtual bool Run() override;
+    virtual bool Worker() override { return true; };
 
 private:
     bool Open(const OutCfg &cfg);
@@ -70,6 +56,6 @@ private:
     std::string      OutFile;
 
     bool  FlushingEncodec();
-    Timer CostTimer{"encoder", false};
+    Timer CostTimer{"encoder", true};
 };
 }  // namespace cv_infer
