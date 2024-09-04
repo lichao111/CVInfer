@@ -15,17 +15,20 @@ bool NodeBase::Start()
     Running = true;
     if (Running)
     {
-        Future = std::async(std::launch::async, [this]() { return Run(); });
+        Future = std::async(std::launch::async, &NodeBase::Run, this);
     }
     return true;
 }
 bool NodeBase::Stop()
 {
-    Running = false;
-    if (Future.valid())
+    if (Running)
     {
-        Future.wait();
-        Future.get();
+        Running = false;
+        if (Future.valid())
+        {
+            Future.wait();
+            Future.get();
+        }
     }
     return true;
 }

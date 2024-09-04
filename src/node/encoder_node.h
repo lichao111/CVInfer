@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include "node/node_base.h"
 #include "tools/timer.h"
 
@@ -57,5 +59,8 @@ private:
 
     bool  FlushingEncodec();
     Timer CostTimer{"encoder", true};
+
+    std::chrono::steady_clock::time_point StartTime;
+    std::uint64_t                         FrameIndex = 0;
 };
 }  // namespace cv_infer

@@ -51,7 +51,7 @@ class NvInferLoggerC : public nvinfer1::ILogger
 class TrtEngine : public EngineBase
 {
 public:
-    virtual bool LoadModel(const std::string& model) override;
+    virtual bool LoadModel(const std::string& model, bool device_preprocess = false) override;
 
     std::vector<std::vector<float>> Forwards(const std::vector<cv::Mat>& input_signals);
 
@@ -69,8 +69,11 @@ public:
         return true;
     }
 
+    void EnableDevicePreProcess() { DevicePreProcess = true; }
+    bool IsDevicePreProcess() const { return DevicePreProcess; }
+
 protected:
-    bool        LoadEngine(const std::string& engine);
+    bool        LoadEngine(const std::string& engine, bool device_preprocess = false);
     bool        BuildEngin(const std::string& src_onnx, const std::string& dst_engine);
     std::string GetEngineName(const std::string& onnx_file, std::uint8_t max_batch_size, PrecisonType precision);
     void        CheckCudaErrorCode(cudaError_t code);
@@ -100,6 +103,7 @@ private:
     std::function<std::vector<std::vector<float>>(std::vector<std::vector<float>>& oupputs)>    PostProcessFunc;
 
     bool DynamicBatch{false};
+    bool DevicePreProcess{false};
 
     Timer CostTimerPre{"TrtEnginePreProcess"};
     Timer CostTimerPost{"TrtEnginePostProcess"};

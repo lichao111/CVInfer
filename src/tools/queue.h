@@ -81,6 +81,6 @@ public:
 private:
     std::queue<T> Que;
     std::mutex    Mutex;
-    std::uint64_t MaxSize{1000};
+    std::uint64_t MaxSize{100000};
 };
 }  // namespace cv_infer

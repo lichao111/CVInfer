@@ -9,7 +9,10 @@ template <typename EngineType>
 class ModelBase
 {
 public:
-    virtual bool Init(const std::string& model_file) { return Engine.LoadModel(model_file); };
+    virtual bool Init(const std::string& model_file, bool device_preprocess = false)
+    {
+        return Engine.LoadModel(model_file, device_preprocess);
+    };
     //  virtual bool PreProcess(const std::vector<cv::Mat>& inputs, void* dst) = 0;
     //  virtual std::vector<std::vector<float>> PostProcess(const std::vector<std::vector<float>>& model_outputs) = 0;
 

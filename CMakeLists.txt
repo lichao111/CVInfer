@@ -32,7 +32,8 @@ set(GIT_COMMIT_ID ${GIT_COMMIT_ID})
 configure_file(${CMAKE_SOURCE_DIR}/src/tools/version.h.in  ${CMAKE_SOURCE_DIR}/src/tools/version.h @ONLY)
 
 set(LIB_CVINFER cvinfer)
-set(EXE_DEMO "demo")
+set(EXE_DEMO demo)
+set(LIB_CUDA_PLUGIN plugin_list)
 
 add_library(${LIB_CVINFER} SHARED)
 add_executable(${EXE_DEMO})
@@ -82,7 +83,8 @@ target_link_libraries(${LIB_CVINFER} PUBLIC
     ${AVFORMAT_LIBRARY} 
     ${AVUTIL_LIBRARY} 
     ${AVDEVICE_LIBRARY} 
-    ${AVSWSCALE_LIBRARY} )
+    ${AVSWSCALE_LIBRARY} 
+    ${LIB_CUDA_PLUGIN})
 
 target_link_libraries(${LIB_CVINFER} PUBLIC 
     ${OpenCV_LIBS} 
@@ -95,3 +97,15 @@ target_link_libraries(${LIB_CVINFER} PUBLIC
     ${TENSORRT_ONNX_PARSER_LIBRARY})
 
 target_link_libraries(${EXE_DEMO} PRIVATE ${LIB_CVINFER})
+
+add_custom_target(personball_mini
+    COMMAND ./${EXE_DEMO} personball_mini
+    DEPENDS ${EXE_DEMO}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+add_custom_target(personball
+    COMMAND ./${EXE_DEMO} personball
+    DEPENDS ${EXE_DEMO}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)

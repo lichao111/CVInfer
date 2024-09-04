@@ -9,6 +9,6 @@ namespace cv_infer
 {
 class EngineBase
 {
-    virtual bool LoadModel(const std::string& model) = 0;
+    virtual bool LoadModel(const std::string& model, bool device_preprocess = false) = 0;
 };
 }  // namespace cv_infer

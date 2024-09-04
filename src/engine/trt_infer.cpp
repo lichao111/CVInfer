@@ -14,8 +14,12 @@
 
 namespace cv_infer::trt
 {
-bool TrtEngine::LoadModel(const std::string& model)
+bool TrtEngine::LoadModel(const std::string& model, bool device_preprocess)
 {
+    if (device_preprocess)
+    {
+        EnableDevicePreProcess();
+    }
     // check onnx
     if (not std::filesystem::exists(model))
     {
@@ -34,7 +38,7 @@ bool TrtEngine::LoadModel(const std::string& model)
         }
     }
     // load trt
-    return LoadEngine(trt_engine);
+    return LoadEngine(trt_engine, device_preprocess);
 }
 
 // https://docs.nvidia.com/deeplearning/tensorrt/developer-guide/index.html#import_onnx_c
@@ -141,7 +145,7 @@ bool TrtEngine::BuildEngin(const std::string& src_onnx, const std::string& dst_e
     return true;
 }
 
-bool TrtEngine::LoadEngine(const std::string& engine)
+bool TrtEngine::LoadEngine(const std::string& engine, bool device_preprocess)
 {
     std::ifstream   file(engine, std::ios::binary | std::ios::ate);
     std::streamsize size = file.tellg();
@@ -200,10 +204,17 @@ bool TrtEngine::LoadEngine(const std::string& engine)
             auto input_size = MaxBatchSize * dims.d[1] * dims.d[2] * dims.d[3] * sizeof(float);
 
             // malloc gpu memory for input[i]
-            CheckCudaErrorCode(cudaMallocAsync(&Buffers[i], size, stream));
+            CheckCudaErrorCode(cudaMallocAsync(&Buffers[i], input_size, stream));
             InputDims.emplace_back(dims);
-            PreProcessBuffers.push_back(static_cast<float*>(malloc(size)));
             InputNames.push_back(tensor_name);
+            if (device_preprocess)
+            {
+                PreProcessBuffers.push_back((float*)(Buffers[i]));
+            }
+            else
+            {
+                PreProcessBuffers.push_back(static_cast<float*>(malloc(input_size)));
+            }
         }
         else if (TrtEngine->getTensorIOMode(tensor_name) == nvinfer1::TensorIOMode::kOUTPUT)
         {
@@ -281,12 +292,15 @@ std::vector<std::vector<float>> TrtEngine::Forwards(const std::vector<cv::Mat>& 
     CheckCudaErrorCode(cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, 0));
 
     // copy to gpu memory [preprocessbuffer -> buffer]
-    for (int i = 0; i < num_inputs; ++i)
+    if (not DevicePreProcess)
     {
-        auto batch_size = 1;  // TODO: dynamic batch size
+        for (int i = 0; i < num_inputs; ++i)
+        {
+            auto batch_size = 1;  // TODO: dynamic batch size
 
-        auto size = batch_size * InputDims[i].d[1] * InputDims[i].d[2] * InputDims[i].d[3] * sizeof(float);
-        CheckCudaErrorCode(cudaMemcpyAsync(Buffers[i], PreProcessBuffers[i], size, cudaMemcpyHostToDevice, stream));
+            auto size = batch_size * InputDims[i].d[1] * InputDims[i].d[2] * InputDims[i].d[3] * sizeof(float);
+            CheckCudaErrorCode(cudaMemcpyAsync(Buffers[i], PreProcessBuffers[i], size, cudaMemcpyHostToDevice, stream));
+        }
     }
 
     // Ensure all dynamic bindings have been defined.

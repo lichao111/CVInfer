@@ -24,7 +24,9 @@ public:
             LOGE("Model.Init failed");
             return false;
         }
-        auto signal = std::make_shared<SignalImageBGR>(cv::Mat(1080, 1920, CV_8UC3, cv::Scalar(0, 0, 0)));
+
+        // worm up
+        auto signal = std::make_shared<SignalImageBGR>(cv::Mat(720, 1280, CV_8UC3, cv::Scalar(0, 0, 0)));
 
         Model.Forwards({signal});
         return true;

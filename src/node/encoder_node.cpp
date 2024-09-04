@@ -1,5 +1,6 @@
 #include "encoder_node.h"
 
+#include <chrono>
 #include <thread>
 
 #include "signal/signal.h"
@@ -14,6 +15,7 @@ bool EncoderNode::Init(const std::string &file_name)
 {
     OutCfg cfg;
     cfg.out_url = file_name;
+    StartTime   = std::chrono::steady_clock::now();
     return Open(cfg);
 }
 bool EncoderNode::Open(const OutCfg &cfg)
@@ -274,9 +276,9 @@ bool EncoderNode::Run()
         }
         CostTimer.EndTimer();
         auto now    = std::chrono::steady_clock::now();
-        auto peroid = std::chrono::duration_cast<std::chrono::milliseconds>(now - image->TimeStamps.front()).count();
-        auto fps    = 1000.f / peroid;
-        LOGI("FrameIndex = [%d], whole peroid = [%ld] ms", frame_index, peroid);
+        auto peroid = std::chrono::duration_cast<std::chrono::milliseconds>(now - StartTime).count();
+        auto fps    = 1000.0f * frame_index / peroid;
+        LOGI("FrameIndex = [%d], peroid = [%ld] ms, FPS = [%f]", frame_index, peroid, fps);
     }
     return true;
 };

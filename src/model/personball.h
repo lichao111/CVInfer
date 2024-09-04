@@ -1,7 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <optional>
 
+#include "engine/preprocess_kernal.cuh"
 #include "math/math.h"
 #include "math/nms.h"
 #include "model/model_base.h"
@@ -17,7 +19,7 @@ class PersonBall : public ModelBase<EngineType>
 public:
     virtual bool Init(const std::string& model)
     {
-        if (not ModelBase<EngineType>::Init(model))
+        if (not ModelBase<EngineType>::Init(model, DevicePreProcess))
         {
             LOGE("ModelBase<EngineType>::Init failed");
             return false;
@@ -52,11 +54,16 @@ public:
             auto height  = image.rows;
             auto channel = image.channels();
 
-            std::vector<float> mean{128, 128, 128};
-            std::vector<float> scale{128, 128, 128};
-
-            ConverHWC2CHWMeanStd(image.data, height, width, channel, mean.data(), scale.data(),
-                                 preprocessed[input_index]);
+            if (DevicePreProcess)
+            {
+                CUDAKernal::ConverHWC2CHWMeanStd(image.data, height, width, channel, Mean.data(), Scale.data(),
+                                                 preprocessed[input_index]);
+            }
+            else
+            {
+                ConverHWC2CHWMeanStd(image.data, height, width, channel, Mean.data(), Scale.data(),
+                                     preprocessed[input_index]);
+            }
         }
 
         return true;
@@ -64,25 +71,26 @@ public:
 
     std::vector<std::vector<float>> PostProcess(std::vector<std::vector<float>> model_outputs)
     {
-        float              level_hw[]      = {64, 96, 32, 48, 16, 24};
-        float              level_strides[] = {8, 16, 32};
-        int                level_num       = 3;
-        int                offset          = 0;
-        float              x_scale         = 1280 / 768.0f;
-        float              y_scale         = 720 / 512.0f;
-        auto               data            = model_outputs[0];
+        int offset = 0;
+
+        float x_scale = InputWidth.value() / static_cast<float>(InferWidth.value());
+        float y_scale = InputHeight.value() / static_cast<float>(InferHeight.value());
+
+        auto               data = model_outputs[0];
         std::vector<float> temp_data(data.size());
+
         // std::copy((temp_data, data.data(), sizeof(float) * data.size());
         std::copy(data.begin(), data.end(), temp_data.begin());
-        for (int level_i = 0; level_i < level_num; ++level_i)
+        for (int level_i = 0; level_i < LevelNum; ++level_i)
         {
-            int h      = level_hw[level_i * 2 + 0];
-            int w      = level_hw[level_i * 2 + 1];
-            int stride = level_strides[level_i];
+            int h      = LevelHW[level_i * 2 + 0];
+            int w      = LevelHW[level_i * 2 + 1];
+            int stride = LevelStrides[level_i];
 
-            float* xg = new float[h * w];
-            float* yg = new float[h * w];
-            bigmeshgrid(h, w, xg, yg);
+            std::vector<float> xg(h * w);
+            std::vector<float> yg(h * w);
+
+            bigmeshgrid(h, w, xg.data(), yg.data());
 
             for (int start_i = offset; start_i < offset + h * w; ++start_i)
             {
@@ -93,16 +101,12 @@ public:
                 temp_data[start_i * 7 + 3] = exp(data[start_i * 7 + 3]) * stride;
             }
 
-            delete[] xg;
-            delete[] yg;
             offset += h * w;
         }
 
-        // 3
-        int                             num = 1;
         std::vector<std::vector<float>> person_bboxes;
         std::vector<std::vector<float>> ball_bboxes;
-        for (int i = 0; i < 8064; ++i)
+        for (int i = 0; i < OutputSize; ++i)  // 8064 is output size, this value is fixed by model
         {
             float* ptr        = temp_data.data() + i * 7;
             float  cx         = ptr[0];
@@ -197,16 +201,41 @@ public:
                 LOGE("The input image is empty");
                 return {};
             }
+            if (not InputWidth.has_value())
+            {
+                InputWidth = input->Val.cols;
+            }
+            if (not InputHeight.has_value())
+            {
+                InputHeight = input->Val.rows;
+            }
             cv::Mat resized;
-            cv::resize(input->Val, resized, cv::Size(768, 512));
+            CostTimer.StartTimer();
+            cv::resize(input->Val, resized, cv::Size(InferWidth.value(), InferHeight.value()));
+            CostTimer.EndTimer("resize");
             images.push_back(resized);
         }
         auto ret = (this->Engine).Forwards(images);
         return ret;
     }
 
-private:
+protected:
     Timer CostTimer{"resize"};
+    bool  DevicePreProcess{true};
+
+    std::optional<int> InputWidth;
+    std::optional<int> InputHeight;
+    std::optional<int> InferWidth{768};
+    std::optional<int> InferHeight{512};
+
+    std::vector<float> Mean{128, 128, 128};
+    std::vector<float> Scale{128, 128, 128};
+
+    std::vector<int> LevelHW{64, 96, 32, 48, 16, 24};
+    std::vector<int> LevelStrides{8, 16, 32};
+    int              LevelNum{3};
+
+    int OutputSize{8064};
 };
 
 }  // namespace cv_infer
