@@ -17,5 +17,6 @@ dim3 block_dims(int numJobs) { return numJobs < GPU_BLOCK_THREADS ? numJobs : GP
 
 void ConverHWC2CHWMeanStd(const unsigned char* src, int h, int w, int c, const float* mean, const float* scale,
                           float* dst);
+void ConverHWC2CHWNorm(const unsigned char* src, int h, int w, int c, float* dst);
 
 }  // namespace CUDAKernal

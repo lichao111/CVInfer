@@ -37,6 +37,18 @@ __global__ void ConverHWC2CHWMeanStdKernel(const unsigned char* src, int h, int 
     }
 }
 
+__global__ void ConverHWC2CHWNormKernel(const unsigned char* src, int h, int w, int c, float* dst)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
+
+    if (x < w && y < h && z < c)
+    {
+        dst[z * h * w + y * w + x] = ((float)(src[y * w * c + x * c + z])) / 255.0;
+    }
+}
+
 void ConverHWC2CHWMeanStd(const unsigned char* src, int h, int w, int c, const float* mean, const float* scale,
                           float* dst)
 {
@@ -77,6 +89,35 @@ void ConverHWC2CHWMeanStd(const unsigned char* src, int h, int w, int c, const f
     cudaFree(src_d);
     cudaFree(mean_d);
     cudaFree(scale_d);
+    cudaStreamDestroy(stream);
+}
+
+void ConverHWC2CHWNorm(const unsigned char* src, int h, int w, int c, float* dst)
+{
+    dim3 block(16, 16, 1);
+    auto grid_x = (w + block.x - 1) / block.x;
+    auto grid_y = (h + block.y - 1) / block.y;
+    auto grid_z = (c + block.z - 1) / block.z;
+    dim3 grid(grid_x, grid_y, grid_z);
+
+    // stream
+    cudaStream_t stream;
+    cudaStreamCreateWithPriority(&stream, cudaStreamNonBlocking, 0);
+    TimerGPU timer;
+    timer.start(stream);
+
+    // copy src to device
+    unsigned char* src_d;
+    cudaMallocAsync(&src_d, h * w * c * sizeof(unsigned char), stream);
+    cudaMemcpyAsync(src_d, src, h * w * c * sizeof(unsigned char), cudaMemcpyHostToDevice, stream);
+
+    ConverHWC2CHWNormKernel<<<grid, block, 0, stream>>>(src_d, h, w, c, dst);
+
+    // realize async
+    cudaStreamSynchronize(stream);
+    timer.stop("ConverHWC2CHWNorm", true);
+
+    cudaFree(src_d);
     cudaStreamDestroy(stream);
 }
 

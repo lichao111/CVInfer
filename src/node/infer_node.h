@@ -9,7 +9,7 @@
 
 namespace cv_infer
 {
-template <template <typename> typename ModelType, typename EngineType>
+template <typename ModelType>
 class InferNode : public NodeBase
 {
 public:
@@ -64,6 +64,6 @@ public:
     }
 
 private:
-    ModelType<EngineType> Model;
+    ModelType Model;
 };
 }  // namespace cv_infer

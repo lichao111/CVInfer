@@ -8,3 +8,5 @@ out
 src/tools/version.h
 *mp4
 *jpg
+*trt
+*onnx

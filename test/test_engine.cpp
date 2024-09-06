@@ -58,7 +58,7 @@ TEST(TrtInfer, Personball)
     cv::imwrite("personball.png", image);
 }
 
-TEST(TrtInfer, infer_node) { auto infer_node = std::make_shared<InferNode<PersonBall, trt::TrtEngine>>(); }
+TEST(TrtInfer, infer_node) { auto infer_node = std::make_shared<InferNode<PersonBall<trt::TrtEngine>>>(); }
 
 int main(int argc, char** argv)
 {
