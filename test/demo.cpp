@@ -89,10 +89,10 @@ bool test_yolo(const std::string& src, const std::string& dst, const std::string
     auto        encoder = std::make_shared<EncoderNode>();
     YoloType    type    = YoloType::YOLOV7;
     std::string model_path{"../test/yolov7.onnx"};
-    if (yolo_type == "yolov5")
+    if (yolo_type == "yolov5s")
     {
         type       = YoloType::YOLOV5;
-        model_path = "../test/yolov5.onnx";
+        model_path = "../test/yolov5s.onnx";
     }
     else if (yolo_type == "yolov7")
     {
@@ -132,7 +132,7 @@ bool test_yolo(const std::string& src, const std::string& dst, const std::string
 
 bool test_yolov7(const std::string& src, const std::string& dst) { return test_yolo(src, dst, "yolov7"); }
 
-bool test_yolov5(const std::string& src, const std::string& dst) { return test_yolo(src, dst, "yolov5"); }
+bool test_yolov5s(const std::string& src, const std::string& dst) { return test_yolo(src, dst, "yolov5s"); }
 
 int main(int argc, char* argv[])
 {
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
     }
 
     std::string src{"../test/mi50_output_view_.mp4"};
-    std::string dst{"demo_output.mp4"};
+    std::string dst = "output_" + test_targrt + ".mp4";
 
     if (test_targrt == "personball_mini")
     {
@@ -171,9 +171,9 @@ int main(int argc, char* argv[])
             LOGE("test_yolov7 failed");
         }
     }
-    else if (test_targrt == "yolov5")
+    else if (test_targrt == "yolov5s")
     {
-        if (not test_yolov5(src, dst))
+        if (not test_yolov5s(src, dst))
         {
             LOGE("test_yolov5 failed");
         }

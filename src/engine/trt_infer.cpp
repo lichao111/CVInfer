@@ -113,7 +113,19 @@ bool TrtEngine::BuildEngin(const std::string& src_onnx, const std::string& dst_e
 
     if (Precision == PrecisonType::FP16)
     {
+        if (not builder->platformHasFastFp16())
+        {
+            LOGW("Platform does not support FP16");
+        }
         config->setFlag(nvinfer1::BuilderFlag::kFP16);
+    }
+    else if (Precision == PrecisonType::INT8)
+    {
+        if (not builder->platformHasFastInt8())
+        {
+            LOGW("Platform does not support INT8");
+        }
+        config->setFlag(nvinfer1::BuilderFlag::kINT8);
     }
 
     // 5. set profile stream
@@ -300,6 +312,17 @@ std::vector<std::vector<float>> TrtEngine::Forwards(const std::vector<cv::Mat>& 
 
             auto size = batch_size * InputDims[i].d[1] * InputDims[i].d[2] * InputDims[i].d[3] * sizeof(float);
             CheckCudaErrorCode(cudaMemcpyAsync(Buffers[i], PreProcessBuffers[i], size, cudaMemcpyHostToDevice, stream));
+        }
+    }
+
+    for (int i = 0; i < num_inputs; ++i)
+    {
+        nvinfer1::Dims4 input_dims = {1, InputDims[i].d[1], InputDims[i].d[2], InputDims[i].d[3]};
+        TrtContext->setInputShape(InputNames[i].c_str(), input_dims);
+        auto name = InputNames[i].c_str();
+        if (auto ret = TrtContext->inferShapes(1, &(name)); ret != 0)  // ??
+        {
+            LOGE("error inferShapes ret =[%d]", ret);
         }
     }
 

@@ -115,3 +115,9 @@ add_custom_target(yolov7
     DEPENDS ${EXE_DEMO}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+
+add_custom_target(yolov5s
+    COMMAND ./${EXE_DEMO} yolov5s
+    DEPENDS ${EXE_DEMO}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)

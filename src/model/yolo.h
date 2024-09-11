@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <optional>
 #include <string>
@@ -65,7 +66,9 @@ public:
 
             if (DevicePreProcess)
             {
-                CUDAKernal::ConverHWC2CHWNorm(image.data, height, width, channel, preprocessed[input_index]);
+                CUDAKernal::ConverHWC2CHWAlpahNormResizeKeepRatio(image.data, height, width, channel,
+                                                                  InferHeight.value(), InferWidth.value(), channel,
+                                                                  1 / 255.0f, 0.0f, 114, 32, preprocessed[input_index]);
             }
             else
             {
@@ -79,12 +82,22 @@ public:
     {
         std::vector<std::vector<float>> person_bboxes;
 
-        auto confidence_threshold = 0.5f;
+        auto src_w = InputWidth.value();
+        auto src_h = InputHeight.value();
+        auto dst_w = InferWidth.value();
+        auto dst_h = InferWidth.value();
+
+        float scale = std::min((float)dst_w / src_w, (float)dst_h / src_h);
+        int   new_w = (int)(src_w * scale);
+        int   new_h = (int)(src_h * scale);
+        int   pad_x = (dst_w - new_w) / 2;
+        int   pad_y = (dst_h - new_h) / 2;
+
+        constexpr auto confidence_threshold = 0.25f;
+        constexpr auto nms_threshold        = 0.45f;
 
         auto anchor_num = 25200;
         auto class_num  = 85;
-
-        int anchor_index = 0;
 
         // 1. 转换
         // outputs.shape = [1 * 214200] (214200 = 25200 * 85)
@@ -106,10 +119,10 @@ public:
                 continue;
             }
 
-            person_bbox.push_back(left * (InputWidth.value() / static_cast<float>(InferWidth.value())));
-            person_bbox.push_back(top * (InputHeight.value() / static_cast<float>(InferHeight.value())));
-            person_bbox.push_back(right * (InputWidth.value() / static_cast<float>(InferWidth.value())));
-            person_bbox.push_back(bottom * (InputHeight.value() / static_cast<float>(InferHeight.value())));
+            person_bbox.push_back((left - pad_x) / scale);
+            person_bbox.push_back((top - pad_y) / scale);
+            person_bbox.push_back((right - pad_x) / scale);
+            person_bbox.push_back((bottom - pad_y) / scale);
             person_bbox.push_back(outputs[0][anchor_index * class_num + 4]);
             auto max_confidence = 0.0f;
             int  label          = -1;
@@ -152,11 +165,11 @@ public:
             }
             for (int j = i + 1; j < person_bboxes.size(); ++j)
             {
-                if (skip[j])
+                if (skip[j] || person_bboxes[i][5] != person_bboxes[j][5])
                 {
                     continue;
                 }
-                if (IoU(person_bboxes[i], person_bboxes[j]) > 0.5)
+                if (IoU(person_bboxes[i], person_bboxes[j]) > nms_threshold)
                 {
                     skip[j] = true;
                 }
@@ -184,9 +197,7 @@ public:
             {
                 InputHeight = input->Val.rows;
             }
-            cv::Mat resized;
-            cv::resize(input->Val, resized, cv::Size(InferWidth.value(), InferHeight.value()));
-            images.push_back(resized);
+            images.push_back(input->Val);
         }
         auto ret = (this->Engine).Forwards(images);
         return ret;

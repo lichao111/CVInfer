@@ -85,7 +85,7 @@ protected:
 private:
     NvInferLoggerC Logger;
     std::uint8_t   MaxBatchSize{1};
-    PrecisonType   Precision{PrecisonType::FP16};
+    PrecisonType   Precision{PrecisonType::FP32};
 
     std::unique_ptr<nvinfer1::IRuntime>          TrtRuntime;
     std::unique_ptr<nvinfer1::ICudaEngine>       TrtEngine;
